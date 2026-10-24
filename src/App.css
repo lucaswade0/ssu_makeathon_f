@@ -261,3 +261,22 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 @media (max-width: 720px) {
   .news-card { padding: 20px; }
 }
+
+.composer { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; padding: 20px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
+.composer .avatar { background: var(--text); color: #fff; }
+.composer-main { flex: 1; min-width: 0; display: grid; gap: 8px; }
+.composer-input { field-sizing: content; min-height: 44px; max-height: 320px; padding: 10px 0; border: 0; border-radius: 0; background: none; font-size: 20px; line-height: 1.4; resize: none; }
+.composer-input::placeholder { color: var(--muted); }
+.composer-input:focus-visible { outline: none; }
+.composer-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+.composer-types { display: flex; flex-wrap: wrap; gap: 4px; margin-right: auto; }
+.type-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--muted); font-size: 14px; font-weight: 600; }
+.type-chip:hover:not(:disabled) { background: var(--bg); filter: none; }
+.type-chip[aria-checked='true'] { background: var(--brand-soft); color: var(--text); }
+button.post-button { min-height: 40px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--accent); color: var(--text); font-size: 15px; font-weight: 700; }
+button.post-button:hover:not(:disabled) { background: var(--accent-hover); filter: none; }
+button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
+@media (max-width: 720px) {
+  .composer { padding: 16px; gap: 12px; }
+  .composer-input { font-size: 18px; }
+}

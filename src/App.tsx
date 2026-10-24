@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { BadgeCheck, ExternalLink, MessageSquare, Pencil, Pin, SquarePen, Trash2 } from 'lucide-react'
+import { BadgeCheck, CircleHelp, ExternalLink, Megaphone, MessageCircle, MessageSquare, Pencil, Pin, SquarePen, Trash2 } from 'lucide-react'
 import { communityApi } from './features/community/api'
 import { useCommunityFeed, useOfficialAlert, usePostMutation, usePostReplies, useReplyMutation } from './features/community/hooks'
 import { useCommunitySession } from './features/community/session'
@@ -80,10 +80,18 @@ function SignInPage({ onBack }: { onBack: () => void }) {
   </div>
 }
 
+const postTypes = [
+  { id: 'update', label: 'Update', Icon: Megaphone },
+  { id: 'question', label: 'Question', Icon: CircleHelp },
+  { id: 'general', label: 'General', Icon: MessageCircle },
+] as const
+
 function PostComposer({ city }: { city: string }) {
+  const { session } = useCommunitySession()
   const [body, setBody] = useState('')
   const [type, setType] = useState<'update' | 'question' | 'general'>('update')
   const mutation = usePostMutation()
+  const name = String(session?.user.user_metadata?.display_name || 'Resident')
   async function submit(event: FormEvent) {
     event.preventDefault()
     try {
@@ -91,17 +99,20 @@ function PostComposer({ city }: { city: string }) {
       setBody('')
     } catch { /* The error is rendered below; keep the draft. */ }
   }
-  return <section className="panel" aria-labelledby="composer-heading">
-    <h2 id="composer-heading">Post to {city}</h2>
-    <form onSubmit={submit}>
-      <label>Post type<select value={type} onChange={e => setType(e.target.value as typeof type)} disabled={mutation.isPending}>
-        <option value="update">Update</option><option value="question">Question</option><option value="general">General</option>
-      </select></label>
-      <label>Your post<textarea value={body} onChange={e => setBody(e.target.value)} rows={4} maxLength={5000} required disabled={mutation.isPending} /></label>
-      <div className="row"><button type="submit" disabled={mutation.isPending || !body.trim()}>{mutation.isPending ? 'Posting…' : 'Publish post'}</button><span className="muted">{body.length}/5000</span></div>
+  return <form className="composer" onSubmit={submit} aria-label={`Post to ${city}`}>
+    <span className="avatar" aria-hidden="true">{initials(name)}</span>
+    <div className="composer-main">
+      <textarea className="composer-input" aria-label={`Post to ${city}`} placeholder={`What’s happening in ${city}?`} value={body} onChange={e => setBody(e.target.value)} rows={1} maxLength={5000} disabled={mutation.isPending} />
+      <div className="composer-bar">
+        <div className="composer-types" role="radiogroup" aria-label="Post type">
+          {postTypes.map(({ id, label, Icon }) => <button key={id} type="button" role="radio" aria-checked={type === id} className="type-chip" disabled={mutation.isPending} onClick={() => setType(id)}><Icon size={16} aria-hidden="true" />{label}</button>)}
+        </div>
+        {body.length > 4500 && <span className="muted">{body.length}/5000</span>}
+        <button type="submit" className="post-button" disabled={mutation.isPending || !body.trim()}>{mutation.isPending ? 'Posting…' : 'Post'}</button>
+      </div>
       <ErrorMessage error={mutation.error} />
-    </form>
-  </section>
+    </div>
+  </form>
 }
 
 // Returns the icon buttons (for a header) and the edit form or delete confirmation (for below the text).
