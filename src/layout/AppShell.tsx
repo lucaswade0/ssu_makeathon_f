@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
-  ChevronDown, HeartHandshake, LocateFixed, MapPin, MapPinned,
+  HeartHandshake, LocateFixed, MapPin, MapPinned,
   LogOut, MessageCircleQuestion, MessagesSquare, Newspaper, ShieldCheck, type LucideIcon,
 } from 'lucide-react'
 
@@ -61,11 +61,15 @@ function CityPicker({ city, onChange }: { city: string; onChange: (city: string)
 
   return (
     <div className="city-picker">
-      <button type="button" className="city-button" aria-expanded={open} onClick={() => { setDraft(city); setLocationNote(null); setOpen(!open) }}>
-        <MapPin size={18} aria-hidden="true" />
-        {city}
-        <ChevronDown size={16} aria-hidden="true" />
-      </button>
+      <div className="city-label">
+        <MapPin size={20} aria-hidden="true" />
+        <div>
+          <p className="city-name">{city}</p>
+          <p className="city-caption">Approximate location, may not be accurate.{' '}
+            <button type="button" className="city-change" aria-expanded={open} onClick={() => { setDraft(city); setLocationNote(null); setOpen(!open) }}>Change</button>
+          </p>
+        </div>
+      </div>
       {open && (
         <form className="city-popover" onSubmit={submit}>
           <button type="button" className="locate-button" onClick={locate} disabled={locating}>
@@ -145,12 +149,13 @@ export function AppShell({ page, onNavigate, city, onCityChange, children }: App
 
       <header className="app-header">
         <button type="button" className="brand" onClick={() => onNavigate('feed')}>
-          <ShieldCheck size={34} aria-hidden="true" />
+          <span className="brand-mark"><ShieldCheck size={22} aria-hidden="true" /></span>
           <span>Safety SAM</span>
         </button>
-        <CityPicker city={city} onChange={onCityChange} />
         <div className="header-spacer" />
         <ProfileMenu onSignIn={() => onNavigate('signin')} />
+        <span className="header-divider" aria-hidden="true" />
+        <CityPicker city={city} onChange={onCityChange} />
       </header>
 
       <div className={`app-body${page === 'map' ? ' compact' : ''}`}>
@@ -159,7 +164,7 @@ export function AppShell({ page, onNavigate, city, onCityChange, children }: App
             {navItems.map(({ id, label, Icon }) => (
               <li key={id}>
                 <button type="button" aria-current={page === id ? 'page' : undefined} onClick={() => onNavigate(id)}>
-                  <Icon size={22} aria-hidden="true" />
+                  <Icon size={22} strokeWidth={page === id ? 2.5 : 2} aria-hidden="true" />
                   {label}
                 </button>
               </li>

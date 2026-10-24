@@ -127,27 +127,39 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 
 .app { min-height: 100vh; }
 .disclaimer { margin: 0; padding: 8px 16px; background: var(--text); color: #fff; font-size: 13px; line-height: 1.4; text-align: center; }
-.app-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 16px max(32px, calc((100% - 1168px) / 2)); background: var(--accent); color: var(--text); }
-.brand { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--text); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.app-header { position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; box-shadow: 0 1px 0 rgba(0, 0, 0, .12), 0 2px 8px rgba(0, 0, 0, .08); padding: 16px max(32px, calc((100% - 1168px) / 2)); background: var(--accent); color: var(--text); }
+.brand { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--text); font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.brand-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--text); color: var(--accent); }
+.header-divider { width: 1px; height: 32px; background: rgba(29, 33, 37, .25); }
 .city-picker { position: relative; }
-.city-button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: #fff; color: var(--text); font-weight: 600; }
-.city-popover { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; width: 300px; padding: 16px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, .15); }
+.city-label { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.city-label > svg { width: 18px; height: 18px; flex: none; }
+.city-label p { margin: 0; line-height: 1.25; }
+.city-name { font-size: 15px; font-weight: 700; }
+.city-caption { font-size: 11px; color: #3a3f45; }
+.city-change { display: inline; min-height: 0; padding: 0; border: 0; background: none; color: var(--text); font-size: 11px; font-weight: 700; text-decoration: underline; }
+.city-change:hover:not(:disabled) { filter: none; text-decoration-thickness: 2px; }
+.city-popover { position: absolute; top: calc(100% + 12px); right: 0; z-index: 10; width: 300px; padding: 16px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, .15); }
 
 .app-body { display: flex; align-items: flex-start; gap: 48px; max-width: 1232px; margin: 0 auto; padding: 48px 32px 64px; }
 .app-body.compact { max-width: 1440px; gap: 32px; padding: 32px; }
 .nav-rail { position: sticky; top: 24px; flex: 0 0 220px; }
 .compact .nav-rail { flex-basis: 88px; }
 .nav-rail ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.nav-rail button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0 14px; border: 0; border-radius: 12px; background: none; color: var(--text); font-size: 16px; font-weight: 600; text-align: left; }
+.nav-rail button { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0 14px; border: 0; border-radius: 12px; background: none; color: var(--text); font-size: 16px; font-weight: 600; text-align: left; }
 .nav-rail button:hover:not(:disabled) { background: rgba(0, 0, 0, .05); filter: none; }
 .nav-rail button[aria-current='page'] { background: var(--brand-soft); font-weight: 700; }
+.nav-rail button[aria-current='page']::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 4px; border-radius: 0 4px 4px 0; background: var(--text); }
+.compact .nav-rail button[aria-current='page']::before { top: 8px; bottom: 8px; }
 .compact .nav-rail button { flex-direction: column; justify-content: center; gap: 4px; min-height: 64px; padding: 8px 4px; font-size: 12px; text-align: center; }
 .app-main { flex: 1; min-width: 0; }
 .feed { max-width: 860px; }
 .coming-soon h1 { margin: 0 0 8px; font-size: 24px; }
 
 @media (max-width: 720px) {
-  .app-header { padding: 12px 16px; }
+  .app-header { padding: 12px 16px; position: static; }
+  .header-divider { display: none; }
+  .nav-rail button[aria-current='page']::before { left: 12px; right: 12px; top: 0; bottom: auto; width: auto; height: 3px; border-radius: 0 0 3px 3px; }
   .app-body, .app-body.compact { display: block; padding: 16px 16px 96px; }
   .nav-rail, .compact .nav-rail { position: fixed; inset: auto 0 0 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--border); padding: 4px 8px; }
   .nav-rail ul { grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
