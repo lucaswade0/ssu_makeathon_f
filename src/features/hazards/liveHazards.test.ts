@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchEvacuationZones, hasLiveCoverage, nearestCoveredCity } from './liveHazards'
+import { fetchEarthquakes, fetchEvacuationZones, hasLiveCoverage, nearestCoveredCity } from './liveHazards'
 
 describe('nearestCoveredCity', () => {
   it('picks the closest covered city, not just any within 30 km', () => {
@@ -74,5 +74,27 @@ describe('fetchEvacuationZones', () => {
   it('throws when Cal OES responds with an error status', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })))
     await expect(fetchEvacuationZones('Santa Rosa')).rejects.toThrow('Evacuation zone request failed (503)')
+  })
+})
+
+describe('fetchEarthquakes', () => {
+  it('turns USGS quakes into earthquake incidents', async () => {
+    const fetchSpy = vi.fn(async (_url: string) => new Response(JSON.stringify({
+      type: 'FeatureCollection',
+      features: [
+        { id: 'nc1', geometry: { coordinates: [-122.8, 38.83, 2] }, properties: { mag: 2.52, place: '7 km W of Cobb, CA', time: 1_700_000_000_000 } },
+        { id: 'nc2', geometry: { coordinates: [-122.7, 38.5, 1] }, properties: { mag: null, place: null, time: 1_700_000_000_000 } },
+      ],
+    })))
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const quakes = await fetchEarthquakes('Santa Rosa')
+    expect(quakes.map(q => [q.id, q.kind, q.title, q.location_text, q.latitude])).toEqual([
+      ['usgs-nc1', 'earthquake', 'M2.5 earthquake', '7 km W of Cobb, CA', 38.83],
+      ['usgs-nc2', 'earthquake', 'M? earthquake', 'Location not listed', 38.5],
+    ])
+    const url = new URL(fetchSpy.mock.calls[0]![0])
+    expect(url.searchParams.get('minmagnitude')).toBe('2.5')
+    expect(url.searchParams.get('maxradiuskm')).toBe('65')
   })
 })

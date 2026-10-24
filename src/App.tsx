@@ -5,7 +5,7 @@ import { communityApi } from './features/community/api'
 import { useCommunityFeed, useOfficialAlert, usePostMutation, usePostReplies, useReplyMutation } from './features/community/hooks'
 import { useCommunitySession } from './features/community/session'
 import type { CommunityPost, CommunityReply } from './features/community/schemas'
-import { hasLiveCoverage, NO_COVERAGE, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
+import { hasLiveCoverage, NO_COVERAGE, useEarthquakes, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
 import { MapPage } from './features/map/MapPage'
 import { NewsPage } from './features/news/NewsPage'
 import { AppShell, ComingSoon, type Page } from './layout/AppShell'
@@ -220,6 +220,7 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
   const feed = useCommunityFeed(sample ? '' : city)
   const alert = useOfficialAlert(sample ? '' : city)
   const fires = useFireIncidents(city)
+  const quakes = useEarthquakes(city)
   const weather = useWeatherAlerts(city)
   const posts = sample ? samplePosts : feed.data?.pages.flatMap(page => page.posts) || []
   const [refreshing, setRefreshing] = useState(false)
@@ -270,11 +271,11 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
       </section>}
       <div className="incident-strip">
         <span className="live-dot" aria-hidden="true" />
-        {fires.isSuccess && weather.isSuccess
-          ? <strong>{fires.data.length} active {fires.data.length === 1 ? 'wildfire' : 'wildfires'} · {weather.data.length} weather {weather.data.length === 1 ? 'alert' : 'alerts'} near {city}</strong>
-          : <strong>{!hasLiveCoverage(city) ? NO_COVERAGE : fires.isError || weather.isError ? 'Live hazard data is unavailable right now' : 'Checking live hazard data…'}</strong>}
+        {fires.isSuccess && quakes.isSuccess && weather.isSuccess
+          ? <strong>{fires.data.length} active {fires.data.length === 1 ? 'wildfire' : 'wildfires'} · {quakes.data.length} recent {quakes.data.length === 1 ? 'earthquake' : 'earthquakes'} · {weather.data.length} weather {weather.data.length === 1 ? 'alert' : 'alerts'} near {city}</strong>
+          : <strong>{!hasLiveCoverage(city) ? NO_COVERAGE : fires.isError || quakes.isError || weather.isError ? 'Live hazard data is unavailable right now' : 'Checking live hazard data…'}</strong>}
         <button type="button" onClick={onOpenMap}>View map</button>
-        <span className="muted">Sources: NIFC, National Weather Service</span>
+        <span className="muted">Sources: NIFC, USGS, National Weather Service</span>
       </div>
       {session && configured && <PostComposer key={session.user.id} city={city} />}
       {configured && feed.isPending && <p role="status">Loading community posts…</p>}

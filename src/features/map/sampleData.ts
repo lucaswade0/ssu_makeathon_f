@@ -21,7 +21,7 @@ export type Shelter = {
   updated_at: string
 }
 
-export type IncidentKind = 'fire' | 'flood' | 'heat'
+export type IncidentKind = 'fire' | 'flood' | 'heat' | 'earthquake'
 
 export type Incident = {
   id: string
