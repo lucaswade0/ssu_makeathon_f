@@ -357,11 +357,21 @@ const weatherResponseSchema = z.object({
       senderName: z.string(),
       effective: z.string(),
       expires: z.string().nullable(),
+      instruction: z.string().nullish(),
     }),
   })),
 })
 
 export type WeatherAlert = z.infer<typeof weatherResponseSchema>['features'][number]['properties']
+
+const SEVERITY_RANK: Record<string, number> = { Extreme: 4, Severe: 3, Moderate: 2, Minor: 1 }
+
+// The alert to pin on the feed: most severe first, then the most recently issued.
+export function topWeatherAlert(alerts: WeatherAlert[]): WeatherAlert | null {
+  return [...alerts].sort((a, b) =>
+    (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0) || Date.parse(b.effective) - Date.parse(a.effective),
+  )[0] ?? null
+}
 
 async function fetchWeatherAlerts(city: string): Promise<WeatherAlert[]> {
   const { lat, lng } = cityCenter(city)

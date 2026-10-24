@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchEarthquakes, fetchEvacuationZones, fetchShakeMaps, hasLiveCoverage, nearestCoveredCity } from './liveHazards'
+import { fetchEarthquakes, fetchEvacuationZones, fetchShakeMaps, topWeatherAlert, hasLiveCoverage, nearestCoveredCity } from './liveHazards'
 
 describe('nearestCoveredCity', () => {
   it('picks the closest covered city, not just any within 30 km', () => {
@@ -113,5 +113,21 @@ describe('fetchShakeMaps', () => {
     const rings = await fetchShakeMaps('Santa Rosa')
     expect(rings.features.map(f => f.properties.mmi)).toEqual([2, 3])
     expect(new URL(fetchSpy.mock.calls[0]![0]).searchParams.get('producttype')).toBe('shakemap')
+  })
+})
+
+describe('topWeatherAlert', () => {
+  const alert = (id: string, severity: string, effective: string) => ({
+    id, event: id, severity, effective, headline: null, areaDesc: '', senderName: 'NWS', expires: null,
+  })
+
+  it('pins the most severe alert, then the newest', () => {
+    expect(topWeatherAlert([
+      alert('minor', 'Minor', '2026-10-24T10:00:00Z'),
+      alert('severe-old', 'Severe', '2026-10-24T08:00:00Z'),
+      alert('severe-new', 'Severe', '2026-10-24T09:00:00Z'),
+      alert('unknown', 'Unknown', '2026-10-24T11:00:00Z'),
+    ])?.id).toBe('severe-new')
+    expect(topWeatherAlert([])).toBeNull()
   })
 })

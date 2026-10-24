@@ -5,7 +5,7 @@ import { communityApi } from './features/community/api'
 import { useCommunityFeed, useOfficialAlert, usePostMutation, usePostReplies, useReplyMutation } from './features/community/hooks'
 import { useCommunitySession } from './features/community/session'
 import type { CommunityPost, CommunityReply, PostType } from './features/community/schemas'
-import { hasLiveCoverage, NO_COVERAGE, useEarthquakes, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
+import { hasLiveCoverage, NO_COVERAGE, topWeatherAlert, useEarthquakes, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
 import { MapPage } from './features/map/MapPage'
 import { NewsPage } from './features/news/NewsPage'
 import { useSimulation } from './features/simulation/context'
@@ -246,6 +246,8 @@ function Feed({ city, onOpenMap, onSignIn }: { city: string; onOpenMap: () => vo
   const official = sample ? sim.state?.alert ?? null : alert.data
   const sourceUrl = official?.source_url && /^https?:\/\//i.test(official.source_url) ? official.source_url : null
   const expired = official?.expires_at && Date.parse(official.expires_at) <= now
+  // With no responder alert, pin the most serious live NWS alert instead, labelled as NWS public data.
+  const nws = !sample && !official && (!configured || !alert.isPending) ? topWeatherAlert(weather.data ?? []) : null
   return <>
     <div className="row feed-heading"><h2>{sample ? 'Simulated feed' : `${city} feed`}</h2>
       <div className="row">
@@ -281,20 +283,30 @@ function Feed({ city, onOpenMap, onSignIn }: { city: string; onOpenMap: () => vo
     </>}
     {!sample && <>
       {!configured && <p role="status" className="notice">The live feed isn’t configured. Add your Supabase settings, or run the disaster simulation.</p>}
-      {configured && <section className={`official-card${expired ? ' expired' : ''}`} aria-label="Latest official alert">
+      {(configured || nws) && <section className={`official-card${expired ? ' expired' : ''}`} aria-label="Latest official alert">
         <div>
           <div className="official-tags">
-            <span className="official-badge"><BadgeCheck size={14} aria-hidden="true" />OFFICIAL</span>
-            <span className="pinned"><Pin size={13} aria-hidden="true" />Pinned · Latest alert</span>
+            {nws
+              ? <><span className="official-badge"><BadgeCheck size={14} aria-hidden="true" />NWS</span><span className="badge community">Public data</span></>
+              : <span className="official-badge"><BadgeCheck size={14} aria-hidden="true" />OFFICIAL</span>}
+            <span className="pinned"><Pin size={13} aria-hidden="true" />Pinned · Latest {nws ? 'weather alert' : 'alert'}</span>
           </div>
-          {alert.isPending && <p role="status">Checking official alerts…</p>}
+          {configured && alert.isPending && <p role="status">Checking official alerts…</p>}
           {alert.isError && <><p>Official alerts could not be loaded. Check your local emergency authority for current instructions.</p><ErrorMessage error={alert.error} /></>}
-          {alert.isSuccess && !official && <p>No official alert is listed here for {city}. This does not confirm that the area is safe.</p>}
-          {official && <>
-            <h2>{official.title}</h2>
-            {expired && <p className="error">This alert has expired. Check the source for current instructions.</p>}
-            {alert.isError && <p className="error">Showing the last loaded alert; it may be out of date.</p>}
-            <p className="body-text">{official.instructions}</p>
+          {nws ? <>
+            <h2>{nws.event}</h2>
+            {nws.headline && <p>{nws.headline}</p>}
+            {nws.instruction && <p className="body-text">{nws.instruction}</p>}
+            <p className="muted">No local responder alert is posted for {city}, so this is the most serious active National Weather Service alert.</p>
+            {(weather.data?.length ?? 0) > 1 && <p className="muted">+{(weather.data?.length ?? 0) - 1} more weather {(weather.data?.length ?? 0) === 2 ? 'alert' : 'alerts'} · <button type="button" className="link-button" onClick={onOpenMap}>View on the map</button></p>}
+          </> : <>
+            {alert.isSuccess && !official && <p>No official alert is listed here for {city}. This does not confirm that the area is safe.</p>}
+            {official && <>
+              <h2>{official.title}</h2>
+              {expired && <p className="error">This alert has expired. Check the source for current instructions.</p>}
+              {alert.isError && <p className="error">Showing the last loaded alert; it may be out of date.</p>}
+              <p className="body-text">{official.instructions}</p>
+            </>}
           </>}
         </div>
         {official && <div className="official-meta">
@@ -302,6 +314,11 @@ function Feed({ city, onOpenMap, onSignIn }: { city: string; onOpenMap: () => vo
           {official.expires_at && <div>Expires <Timestamp value={official.expires_at} /></div>}
           <div>Source: {official.source_name}</div>
           {sourceUrl && <a className="official-link" href={sourceUrl} target="_blank" rel="noreferrer">Official instructions<ExternalLink size={14} aria-hidden="true" /></a>}
+        </div>}
+        {nws && <div className="official-meta">
+          <div>Issued <Timestamp value={nws.effective} /></div>
+          {nws.expires && <div>Expires <Timestamp value={nws.expires} /></div>}
+          <div>Source: {nws.senderName} (National Weather Service)</div>
         </div>}
       </section>}
       <div className="incident-strip">
