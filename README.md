@@ -1,6 +1,6 @@
-# Wildfire Watch
+# Safety SAM
 
-Localized wildfire preparedness and community communication prototype.
+Localized disaster preparedness and community communication prototype. Safety SAM is built for any disaster that can affect a local community (wildfire, flood, earthquake, hurricane, severe storm, extreme heat, winter weather), with wildfire as the default demonstration scenario.
 
 ## Current status
 

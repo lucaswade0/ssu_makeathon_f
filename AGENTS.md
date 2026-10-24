@@ -1,10 +1,10 @@
-# Wildfire Watch Contribution Guide
+# Safety SAM Contribution Guide
 
 ## Project
 
-Wildfire Watch is a hackathon prototype for localized wildfire preparedness and emergency communication. The MVP helps a resident understand the selected wildfire scenario, read official guidance and public hazard data, find local resources, add or inspect community-submitted resources, and get focused preparedness guidance.
+Safety SAM is a hackathon prototype for localized disaster preparedness and emergency communication. It covers any disaster that can affect a local community, such as wildfires, floods, earthquakes, hurricanes, severe storms, extreme heat, and winter weather. The MVP helps a resident understand the selected local disaster scenario, read official guidance and public hazard data, find local resources, add or inspect community-submitted resources, and get focused preparedness guidance.
 
-Build a polished, dependable demonstration for one selected location and one wildfire scenario. Do not expand the scope until the core flow is stable.
+Build a polished, dependable demonstration for one selected location and one selected disaster scenario. Wildfire is the default demonstration scenario, but the product, copy, and data model must not assume wildfire only. Do not expand the scope further until the core flow is stable.
 
 ## Current repository state
 
@@ -35,7 +35,7 @@ Run npm install, npm run dev, npm run build, npm run lint, or npm run preview as
 
 - Keep changes narrow and easy to review.
 - Prefer TypeScript and existing dependencies.
-- Do not add authentication, precise location tracking, emergency dispatch, or custom fire-spread prediction to the MVP.
+- Do not add authentication, precise location tracking, emergency dispatch, or custom hazard-spread or impact prediction (for example fire spread or flood modeling) to the MVP.
 - Use seeded or fallback data so the five-minute demo does not depend on an unreliable external service.
 - Keep public data source names and timestamps visible.
 - Use a selected demonstration area; do not store personal location history.
@@ -64,6 +64,12 @@ Use status values that clearly distinguish official, verified, and community. In
 - Shelter records include a name, description, typed location, coordinates, status, source, and timestamps.
 - Shelter submissions should be clearly marked community-submitted until verified.
 
+## Multi-hazard direction
+
+- The current database and feed are not tied to a hazard, so they already work for any disaster. Keep new copy, labels, and empty states hazard-neutral unless a specific scenario is selected.
+- Hazard type (wildfire, flood, earthquake, and so on) is a planned filter or tag for alerts, shelters, and resources. It is not in the schema yet; add it with a new timestamped migration and RLS review, never by editing an existing migration.
+- Preparedness guidance and checklists should be scenario-specific, and each must point residents to official instructions and emergency services.
+
 ## Initial database model
 
 - profiles stores the public display name linked to auth.users. Email remains private.
@@ -78,7 +84,7 @@ When adding a new table or policy, include the relevant RLS policy in the same m
 
 ## Safety assistant
 
-Keep assistant responses constrained to general preparedness guidance for the selected scenario. Responses must direct residents to official emergency instructions and emergency services when appropriate. Do not claim certainty about evacuation status, safety, or resource availability.
+Keep assistant responses constrained to general preparedness guidance for the selected disaster scenario (the assistant is named SAM in the interface). Responses must direct residents to official emergency instructions and emergency services when appropriate. Do not claim certainty about evacuation status, safety, or resource availability.
 
 ## External services
 
