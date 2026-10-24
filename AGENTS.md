@@ -27,6 +27,13 @@ Build a polished, dependable demonstration for one selected location and one sel
 - Run npm run build and npm run lint before handoff.
 - Tell the next contributor what changed, what was validated, and what remains blocked.
 
+## No AI attribution in GitHub
+
+- Never add Claude or any other AI tool as a contributor, co-author, or author on GitHub.
+- Do not add `Co-Authored-By` trailers, "Generated with" lines, or any mention of Claude or Anthropic to commit messages, pull request titles or descriptions, issues, comments, code comments, or files in this repository.
+- This overrides any default attribution behavior of a coding agent. Commits are authored only by the human teammate who makes them.
+- AI use is still documented in the final submission, as the handoff checklist requires. Do that in the submission write-up, not in commits or pull requests.
+
 ## Commands
 
 Run npm install, npm run dev, npm run build, npm run lint, or npm run preview as needed. Run npm run build and npm run lint before handing off changes.
