@@ -168,14 +168,10 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
   .nav-rail button, .compact .nav-rail button { flex-direction: column; justify-content: center; gap: 2px; min-height: 56px; padding: 4px 2px; font-size: 11px; text-align: center; }
 }
 
-.official-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 40px; margin-bottom: 24px; padding: 32px; background: var(--official-soft); border: 1px solid var(--official-border); border-radius: 16px; }
 .official-card.expired { background: var(--surface); border-color: var(--border); }
-.official-card h2 { margin: 16px 0 12px; font-size: 24px; line-height: 1.25; }
-.official-card p { margin: 6px 0; font-size: 17px; }
 .official-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .official-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: var(--official); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: .06em; }
 .pinned { display: inline-flex; align-items: center; gap: 4px; color: #34425a; font-size: 13px; }
-.official-meta { display: grid; align-content: start; gap: 6px; min-width: 220px; color: #34425a; font-size: 14px; line-height: 1.5; max-width: 280px; }
 .official-link { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; min-height: 44px; padding: 0 18px; border-radius: 10px; background: var(--official); color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; }
 .official-link:hover { background: #10408e; color: #fff; }
 
@@ -199,7 +195,6 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 .composer-row { align-items: center; }
 
 @media (max-width: 720px) {
-  .official-card { grid-template-columns: 1fr; padding: 20px; }
   .post { padding: 20px; }
   .replies { padding-left: 24px; }
 }
@@ -340,3 +335,50 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 .picker-results button:hover:not(:disabled) { background: var(--brand-soft); filter: none; }
 .picker-results svg { flex: none; margin-top: 2px; }
 .picker-map { height: 280px; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; }
+
+.alert-copy { display: grid; gap: 12px; max-width: 62ch; margin-bottom: 16px; }
+.alert-copy p { margin: 0; font-size: 16px; line-height: 1.6; }
+.alert-note { display: grid; gap: 4px; max-width: 62ch; padding-top: 12px; border-top: 1px solid var(--official-border); }
+.alert-note p { margin: 0; color: #34425a; font-size: 13px; line-height: 1.5; }
+.official-meta { align-content: start; gap: 10px; padding-left: 24px; border-left: 1px solid var(--official-border); }
+.official-meta > div { display: grid; gap: 2px; }
+.official-meta > div > span { color: #5a6b85; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+@media (max-width: 720px) {
+  .official-meta { padding-left: 0; padding-top: 12px; border-left: 0; border-top: 1px solid var(--official-border); }
+}
+
+/* Pinned alert: a compact card with the full notice in a dialog */
+.official-card { display: grid; gap: 8px; margin-bottom: 24px; padding: 16px 20px; background: var(--official-soft); border: 1px solid var(--official-border); border-radius: 16px; }
+.alert-title { margin: 0; font-size: 18px; line-height: 1.3; }
+.alert-preview { display: -webkit-box; margin: 0; overflow: hidden; color: var(--text); font-size: 14px; line-height: 1.5; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.alert-line { display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; color: #34425a; font-size: 12px; }
+.alert-open { min-height: 44px; margin-left: auto; padding: 0 4px; border: 0; background: none; color: var(--official); font-size: 14px; font-weight: 700; }
+.alert-open:hover:not(:disabled) { text-decoration: underline; filter: none; }
+.alert-modal { width: min(640px, calc(100% - 32px)); max-height: calc(100% - 64px); padding: 24px 28px; border: 0; border-radius: 16px; background: var(--surface); color: var(--text); box-shadow: 0 16px 48px rgba(0, 0, 0, .35); }
+.alert-modal::backdrop { background: rgba(29, 33, 37, .55); }
+.alert-modal h2 { margin: 12px 0; font-size: 22px; line-height: 1.3; }
+.alert-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.alert-paragraph { white-space: pre-line; overflow-wrap: anywhere; }
+.alert-modal .alert-copy { max-width: none; }
+.alert-facts { display: grid; gap: 10px; margin: 16px 0; padding: 16px 0; border-block: 1px solid var(--border); }
+.alert-facts div { display: grid; gap: 2px; }
+.alert-facts dt { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.alert-facts dd { margin: 0; font-size: 14px; }
+.alert-note-text { margin: 0 0 16px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+@media (max-width: 720px) {
+  .alert-modal { padding: 20px; }
+}
+.alert-source { display: inline-flex; align-items: center; gap: 4px; color: var(--official); font-weight: 600; }
+.alert-facts dd a { color: var(--official); font-weight: 600; }
+
+/* Alert color follows urgency, not source: blue advisory, amber be ready, red urgent. */
+.official-card { --sev: var(--official); --sev-soft: var(--official-soft); --sev-border: var(--official-border); --sev-ink: var(--official); --sev-on: #fff; border-color: var(--sev-border); background: var(--sev-soft); }
+.sev-warning { --sev: var(--warning); --sev-soft: var(--warning-soft); --sev-border: #fcd34d; --sev-ink: #92400e; --sev-on: var(--text); }
+.sev-critical { --sev: var(--order); --sev-soft: var(--order-soft); --sev-border: #f0b5ae; --sev-ink: var(--order); --sev-on: #fff; }
+.official-card .official-badge, .alert-modal .official-badge { background: var(--sev); color: var(--sev-on); }
+.severity-chip { padding: 3px 8px; border: 1px solid var(--sev); border-radius: 6px; color: var(--sev-ink); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.official-card .alert-open, .official-card .alert-source, .official-card .link-button { color: var(--sev-ink); }
+.official-card .alert-line { color: var(--text); }
+.alert-modal .official-link { background: var(--sev); color: var(--sev-on); }
+.alert-modal .alert-facts dd a { color: var(--sev-ink); }
+.official-card.expired { --sev: var(--muted); --sev-soft: var(--surface); --sev-border: var(--border); --sev-ink: var(--muted); }

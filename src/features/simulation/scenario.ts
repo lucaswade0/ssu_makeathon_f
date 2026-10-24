@@ -20,7 +20,7 @@ export type SimState = {
 }
 
 type Effects = {
-  alert?: Pick<OfficialAlert, 'title' | 'instructions' | 'source_name'>
+  alert?: Pick<OfficialAlert, 'title' | 'instructions' | 'source_name' | 'severity'>
   incident?: Partial<Incident>
   addZones?: string[]
   removeZones?: string[]
@@ -62,7 +62,7 @@ export const steps: SimStep[] = [
     title: 'Red Flag Warning issued',
     narration: 'Hot, dry, windy weather raises fire danger across the North Bay. No fire has been reported.',
     effects: {
-      alert: { title: 'Red Flag Warning in effect', instructions: 'Fire danger is critical. Avoid outdoor burning and anything that can spark. Review your evacuation plan and keep your phone charged.', source_name: nws },
+      alert: { severity: 'warning', title: 'Red Flag Warning in effect', instructions: 'Fire danger is critical. Avoid outdoor burning and anything that can spark. Review your evacuation plan and keep your phone charged.', source_name: nws },
       news: [{ hazard: 'weather', source: nws, title: 'Red Flag Warning until 8 PM', summary: 'Extreme · Affects North Bay Mountains and Sonoma County interior', expires: null, url: 'https://www.weather.gov/' }],
       posts: [{ name: 'Priya S.', type: 'update', body: 'Wind is really picking up on Fountaingrove. Bringing the patio furniture in and charging everything.' }],
     },
@@ -84,7 +84,7 @@ export const steps: SimStep[] = [
     effects: {
       incident: { acres: 60, containment: 0 },
       addZones: ['SRO-E012'],
-      alert: { title: 'Evacuation warning: Zone SRO-E012', instructions: 'Be ready to leave on short notice. Gather medications, documents, and pets. Follow orders from local officials.', source_name: county },
+      alert: { severity: 'warning', title: 'Evacuation warning: Zone SRO-E012', instructions: 'Be ready to leave on short notice. Gather medications, documents, and pets. Follow orders from local officials.', source_name: county },
       news: [{ hazard: 'fire', source: 'Sample data (CAL FIRE)', title: 'Fire grows near Fountaingrove', summary: '60 acres · 0% contained · Fountaingrove Pkwy near Round Barn Blvd', expires: null, url: 'https://inciweb.wildfire.gov/' }],
       posts: [{ name: 'Dev T.', type: 'update', body: 'Packed the car just in case. Neighbors on my street are doing the same.' }],
     },
@@ -97,7 +97,7 @@ export const steps: SimStep[] = [
       incident: { acres: 240, containment: 10 },
       addZones: ['SRO-E011'],
       openResources: ['resource-transport-1'],
-      alert: { title: 'Evacuation order: Zone SRO-E011', instructions: 'Leave now. Do not wait. Take your pets and essentials, and follow the routes given by local officials.', source_name: county },
+      alert: { severity: 'critical', title: 'Evacuation order: Zone SRO-E011', instructions: 'Leave now. Do not wait. Take your pets and essentials, and follow the routes given by local officials.', source_name: county },
       news: [{ hazard: 'evacuation', source: county, title: 'Evacuation order · Zone SRO-E011', summary: 'Leave now. Follow instructions from local officials.', expires: null, url: 'https://www.caloes.ca.gov/' }],
       posts: [{ name: 'Lena R.', type: 'update', body: 'Mandatory order is out for E011. Roads out are slow but moving. Please do not wait.' }],
     },
@@ -137,7 +137,7 @@ export const steps: SimStep[] = [
       removeZones: ['SRO-E011'],
       openShelters: ['shelter-2'],
       openResources: ['resource-charging-1'],
-      alert: { title: 'Evacuation order lifted for Zone SRO-E011', instructions: 'The order for Zone SRO-E011 has been reduced to a warning. Stay ready to leave. Check official sources before returning home.', source_name: county },
+      alert: { severity: 'warning', title: 'Evacuation order lifted for Zone SRO-E011', instructions: 'The order for Zone SRO-E011 has been reduced to a warning. Stay ready to leave. Check official sources before returning home.', source_name: county },
       news: [
         { hazard: 'evacuation', source: county, title: 'Order lifted · Zone SRO-E011', summary: 'Reduced to a warning. Check official sources before returning home.', expires: null, url: 'https://www.caloes.ca.gov/' },
         { hazard: 'evacuation', source: 'Sample data (Red Cross listing)', title: 'Overflow shelter open at Veterans Memorial Building', summary: 'Pets allowed in crates. Listed by the Red Cross.', expires: null, url: 'https://www.caloes.ca.gov/' },
@@ -153,7 +153,7 @@ export const steps: SimStep[] = [
       removeZones: ['SRO-E012'],
       closeShelters: ['shelter-1', 'shelter-2', 'shelter-3'],
       closeResources: sampleExtras.map(resource => resource.id),
-      alert: { title: 'Evacuation warnings lifted', instructions: 'All evacuation warnings for this fire are lifted. Check official sources for road and utility updates before you return.', source_name: county },
+      alert: { severity: 'info', title: 'Evacuation warnings lifted', instructions: 'All evacuation warnings for this fire are lifted. Check official sources for road and utility updates before you return.', source_name: county },
       news: [{ hazard: 'evacuation', source: county, title: 'Evacuation centers closing', summary: 'Finley Community Center and the overflow shelter close today as warnings are lifted.', expires: null, url: 'https://www.caloes.ca.gov/' }, { hazard: 'fire', source: 'Sample data (CAL FIRE)', title: 'Fountaingrove fire 70% contained', summary: '520 acres · 70% contained · Fountaingrove Pkwy near Round Barn Blvd', expires: null, url: 'https://inciweb.wildfire.gov/' }],
       posts: [{ name: 'Dev T.', type: 'update', body: 'Heading home. Power is back on our street but the smell of smoke is strong. Keep windows closed.' }],
     },
@@ -186,7 +186,7 @@ export function simulationState(index: number, base: number): SimState {
     if (e.alert) {
       alert = {
         id: `sim-alert-${step.id}`, city: SIM_CITY, title: e.alert.title, instructions: e.alert.instructions,
-        source_name: e.alert.source_name, source_url: null, issued_at: time, expires_at: null, created_at: time, updated_at: time,
+        source_name: e.alert.source_name, severity: e.alert.severity, source_url: null, issued_at: time, expires_at: null, created_at: time, updated_at: time,
       }
     }
     if (e.incident) incident = { ...(incident ?? fireBase), ...e.incident, updated_at: time }

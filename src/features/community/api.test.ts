@@ -123,6 +123,26 @@ describe('community API boundaries', () => {
     expect(query.insert).toHaveBeenCalledWith({ post_id: postId, author_id: owner, body: 'Thanks' })
   })
 
+  const alertRow = {
+    id: postId, city: 'Santa Rosa', title: 'Evacuation warning', instructions: 'Be ready to leave.', source_name: 'Sonoma County',
+    source_url: 'https://example.gov/alert', issued_at: timestamp, expires_at: null, created_at: timestamp, updated_at: timestamp,
+  }
+
+  it('returns the latest alert with its severity', async () => {
+    const { api } = setup({ data: { ...alertRow, severity: 'critical' }, error: null })
+    expect(await api.latestAlert('Santa Rosa')).toMatchObject({ title: 'Evacuation warning', severity: 'critical' })
+  })
+
+  it('treats an alert with no severity as plain information', async () => {
+    const { api } = setup({ data: alertRow, error: null })
+    expect((await api.latestAlert('Santa Rosa'))?.severity).toBe('info')
+  })
+
+  it('rejects an alert with an unknown severity instead of guessing a color', async () => {
+    const { api } = setup({ data: { ...alertRow, severity: 'apocalyptic' }, error: null })
+    await expect(api.latestAlert('Santa Rosa')).rejects.toThrow()
+  })
+
   it('returns no pinned alert for a city with no official information', async () => {
     const { api, query } = setup({ data: null, error: null })
     expect(await api.latestAlert('Santa Rosa')).toBeNull()

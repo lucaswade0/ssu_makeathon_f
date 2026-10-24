@@ -30,6 +30,8 @@ export const replySchema = z.object({
   author: authorSchema.nullable(),
 })
 
+export const alertSeverities = ['info', 'warning', 'critical'] as const
+
 export const alertSchema = z.object({
   id: idSchema,
   city: citySchema,
@@ -37,6 +39,8 @@ export const alertSchema = z.object({
   instructions: z.string(),
   source_name: z.string(),
   source_url: z.string().nullable(),
+  // Older rows and responders that don't set one are treated as plain information.
+  severity: z.enum(alertSeverities).default('info'),
   issued_at: timestamp,
   expires_at: timestamp.nullable(),
   created_at: timestamp,

@@ -108,4 +108,13 @@ describe('wildfire simulation scenario', () => {
     const charging = simulationState(at('downgrade'), base).resources.find(r => r.id === 'resource-charging-1')
     expect(charging?.status).toBe('community_submitted')
   })
+
+  it('colors the pinned alert by urgency as the scenario escalates and eases', () => {
+    const severity = (index: number) => simulationState(index, base).alert?.severity
+    expect(severity(at('red-flag'))).toBe('warning')
+    expect(severity(at('warning'))).toBe('warning')
+    expect(severity(at('order'))).toBe('critical')
+    expect(severity(at('downgrade'))).toBe('warning')
+    expect(severity(last)).toBe('info')
+  })
 })
