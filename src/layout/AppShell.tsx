@@ -156,9 +156,9 @@ export function AppShell({ page, onNavigate, city, onCityChange, children }: App
           <span>Safety SAM</span>
         </button>
         <div className="header-spacer" />
-        <ProfileMenu onSignIn={() => onNavigate('signin')} />
-        <span className="header-divider" aria-hidden="true" />
         <CityPicker city={city} onChange={onCityChange} />
+        <span className="header-divider" aria-hidden="true" />
+        <ProfileMenu onSignIn={() => onNavigate('signin')} />
       </header>
 
       <div className={`app-body${page === 'map' ? ' compact' : ''}`}>
