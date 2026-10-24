@@ -5,7 +5,7 @@ import { communityApi } from './features/community/api'
 import { useCommunityFeed, useOfficialAlert, usePostMutation, usePostReplies, useReplyMutation } from './features/community/hooks'
 import { useCommunitySession } from './features/community/session'
 import type { CommunityPost, CommunityReply } from './features/community/schemas'
-import { useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
+import { hasLiveCoverage, NO_COVERAGE, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
 import { MapPage } from './features/map/MapPage'
 import { AppShell, ComingSoon, type Page } from './layout/AppShell'
 import './App.css'
@@ -271,7 +271,7 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
         <span className="live-dot" aria-hidden="true" />
         {fires.isSuccess && weather.isSuccess
           ? <strong>{fires.data.length} active {fires.data.length === 1 ? 'wildfire' : 'wildfires'} · {weather.data.length} weather {weather.data.length === 1 ? 'alert' : 'alerts'} near {city}</strong>
-          : <strong>{fires.isError || weather.isError ? 'Live hazard data is unavailable right now' : 'Checking live hazard data…'}</strong>}
+          : <strong>{!hasLiveCoverage(city) ? NO_COVERAGE : fires.isError || weather.isError ? 'Live hazard data is unavailable right now' : 'Checking live hazard data…'}</strong>}
         <button type="button" onClick={onOpenMap}>View map</button>
         <span className="muted">Sources: NIFC, National Weather Service</span>
       </div>

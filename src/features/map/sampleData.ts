@@ -43,7 +43,7 @@ export type ZoneProperties = {
   level: ZoneLevel
   instructions: string
   source: string
-  issued_at: string
+  issued_at: string | null
 }
 
 export const sampleShelters: Shelter[] = [
@@ -123,8 +123,13 @@ export const sampleIncidents: Incident[] = [
   },
 ]
 
+export type ZoneCollection = FeatureCollection<Polygon, ZoneProperties>
+
+// No live evacuation-zone source is connected yet, so live mode draws none.
+export const noZones: ZoneCollection = { type: 'FeatureCollection', features: [] }
+
 // GeoJSON uses [longitude, latitude], and each ring ends on its first point.
-export const sampleZones: FeatureCollection<Polygon, ZoneProperties> = {
+export const sampleZones: ZoneCollection = {
   type: 'FeatureCollection',
   features: [
     {
