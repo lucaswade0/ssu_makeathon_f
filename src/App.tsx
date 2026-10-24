@@ -7,6 +7,8 @@ import type { CommunityPost, CommunityReply } from './features/community/schemas
 import { MapPage } from './features/map/MapPage'
 import { AppShell, ComingSoon, type Page } from './layout/AppShell'
 import './App.css'
+import { BadgeCheck, ExternalLink, MessageSquare, Pin } from 'lucide-react'
+import { sampleIncidents } from './features/map/sampleData'
 
 function ErrorMessage({ error }: { error: unknown }) {
   if (!error) return null
@@ -16,6 +18,10 @@ function ErrorMessage({ error }: { error: unknown }) {
 
 function Timestamp({ value }: { value: string }) {
   return <time dateTime={value}>{new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</time>
+}
+
+function initials(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0).toUpperCase()).join('') || '?'
 }
 
 function Account() {
@@ -143,15 +149,21 @@ function PostCard({ post, sample = false }: { post: CommunityPost; sample?: bool
   const mutation = usePostMutation()
   const [showReplies, setShowReplies] = useState(false)
   return <article className="panel post" aria-label={`Post by ${post.author?.display_name || 'Resident'}`}>
-    <div className="meta"><strong>{post.author?.display_name || 'Resident'}</strong><span>{post.post_type}</span><span className="badge">{sample ? 'Sample post' : 'Community · unverified'}</span></div>
-    <div className="meta"><Timestamp value={post.created_at} />{post.updated_at !== post.created_at && <span>Edited</span>}</div>
+    <div className="post-head">
+      <span className="avatar" aria-hidden="true">{initials(post.author?.display_name || 'Resident')}</span>
+      <div>
+        <strong>{post.author?.display_name || 'Resident'}</strong>
+        <div className="meta"><Timestamp value={post.created_at} /><span className="post-type">{post.post_type}</span>{post.updated_at !== post.created_at && <span>Edited</span>}</div>
+      </div>
+      <span className="badge community">{sample ? 'Sample post' : 'Community · unverified'}</span>
+    </div>
     <p className="body-text">{post.body}</p>
     {!sample && <>
       {session?.user.id === post.author_id && <EntryActions body={post.body} maxLength={5000} busy={mutation.isPending} post
         onSave={body => mutation.mutateAsync({ action: 'edit', id: post.id, input: { body } })}
         onDelete={() => mutation.mutateAsync({ action: 'delete', id: post.id })} />}
       <ErrorMessage error={mutation.error} />
-      <button className="reply-toggle" aria-expanded={showReplies} onClick={() => setShowReplies(!showReplies)}>{showReplies ? 'Hide replies' : 'View replies'}</button>
+      <button className="reply-toggle" aria-expanded={showReplies} onClick={() => setShowReplies(!showReplies)}><MessageSquare size={14} aria-hidden="true" />{showReplies ? 'Hide replies' : 'View replies'}</button>
       {showReplies && <Replies key={session?.user.id || 'guest'} postId={post.id} />}
     </>}
   </article>
@@ -169,7 +181,7 @@ const samplePosts: CommunityPost[] = [{
   author: { id: '00000000-0000-4000-8000-000000000002', display_name: 'Sample resident' },
 }]
 
-function Feed({ city, sample }: { city: string; sample: boolean }) {
+function Feed({ city, sample, onOpenMap }: { city: string; sample: boolean; onOpenMap: () => void }) {
   const { session, configured } = useCommunitySession()
   const feed = useCommunityFeed(sample ? '' : city)
   const alert = useOfficialAlert(sample ? '' : city)
@@ -193,21 +205,35 @@ function Feed({ city, sample }: { city: string; sample: boolean }) {
     </div>
     {sample ? <p role="status" className="notice">Sample data only. Posting and replies are available in the live feed.</p> : <>
       {!configured && <p role="status" className="notice">The live feed isn’t configured. Add your Supabase settings or view the sample feed.</p>}
-      {configured && <section className="panel official" aria-label="Official alert">
-        <h3>Latest official alert</h3>
-        {alert.isPending && <p role="status">Checking official alerts…</p>}
-        {alert.isError && <><p>Official alerts could not be loaded. Check your local emergency authority for current instructions.</p><ErrorMessage error={alert.error} /></>}
-        {alert.isSuccess && !official && <p>No official alert is listed here for {city}. This does not confirm that the area is safe.</p>}
-        {official && <>
-          <h3>{official.title}</h3>
-          {expired && <p className="error">This alert has expired. Check the source for current instructions.</p>}
-          {alert.isError && <p className="error">Showing the last loaded alert; it may be out of date.</p>}
-          <p className="body-text">{official.instructions}</p>
-          <p>Source: {sourceUrl ? <a href={sourceUrl} target="_blank" rel="noreferrer">{official.source_name}</a> : official.source_name}</p>
-          <p className="meta">Issued <Timestamp value={official.issued_at} /></p>
-          {official.expires_at && <p className="meta">Expires <Timestamp value={official.expires_at} /></p>}
-        </>}
+        {configured && <section className={`official-card${expired ? ' expired' : ''}`} aria-label="Latest official alert">
+        <div>
+          <div className="official-tags">
+            <span className="official-badge"><BadgeCheck size={14} aria-hidden="true" />OFFICIAL</span>
+            <span className="pinned"><Pin size={13} aria-hidden="true" />Pinned · Latest alert</span>
+          </div>
+          {alert.isPending && <p role="status">Checking official alerts…</p>}
+          {alert.isError && <><p>Official alerts could not be loaded. Check your local emergency authority for current instructions.</p><ErrorMessage error={alert.error} /></>}
+          {alert.isSuccess && !official && <p>No official alert is listed here for {city}. This does not confirm that the area is safe.</p>}
+          {official && <>
+            <h2>{official.title}</h2>
+            {expired && <p className="error">This alert has expired. Check the source for current instructions.</p>}
+            {alert.isError && <p className="error">Showing the last loaded alert; it may be out of date.</p>}
+            <p className="body-text">{official.instructions}</p>
+          </>}
+        </div>
+        {official && <div className="official-meta">
+          <div>Issued <Timestamp value={official.issued_at} /></div>
+          {official.expires_at && <div>Expires <Timestamp value={official.expires_at} /></div>}
+          <div>Source: {official.source_name}</div>
+          {sourceUrl && <a className="official-link" href={sourceUrl} target="_blank" rel="noreferrer">Official instructions<ExternalLink size={14} aria-hidden="true" /></a>}
+        </div>}
       </section>}
+      <div className="incident-strip">
+        <span className="live-dot" aria-hidden="true" />
+        <strong>{sampleIncidents.length} active incidents nearby</strong>
+        <button type="button" onClick={onOpenMap}>View map</button>
+        <span className="muted">Sample public data</span>
+      </div>
       {session && configured ? <PostComposer key={session.user.id} city={city} /> : <p className="muted">Read community posts below. Sign in to publish a post or reply.</p>}
       {configured && feed.isPending && <p role="status">Loading community posts…</p>}
       {feed.isError && <section className="panel"><h3>Couldn’t load the feed</h3><ErrorMessage error={feed.error} /><p>Check your connection. If this is a new project, make sure the database migrations have been applied.</p><button onClick={() => void refresh()}>Try again</button></section>}
@@ -231,7 +257,7 @@ function App() {
         {!sample && <Account />}
         <button className="mode-button" onClick={() => setSample(!sample)}>{sample ? 'Back to live feed' : 'View sample feed'}</button>
       </aside>
-      <section className="feed" aria-label="Community feed"><Feed key={`${city}-${sample}`} city={city} sample={sample} /></section>
+      <section className="feed" aria-label="Community feed"><Feed key={`${city}-${sample}`} city={city} sample={sample} onOpenMap={() => setPage('map')} /></section>
     </div>}
     {page === 'map' && <MapPage city={city} />}
     {page === 'news' && <ComingSoon title="News" text="Local news and public data summaries will appear here." />}
