@@ -182,7 +182,7 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 .incident-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-bottom: 24px; padding: 0 4px; color: var(--muted); font-size: 14px; }
 .incident-strip strong { font-weight: 500; }
 .incident-strip button { min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--official); font-weight: 600; }
-.incident-strip .muted { margin-left: auto; font-size: 12px; }
+.incident-strip .muted { flex: 1 0 100%; margin: -8px 0 0; padding-left: 22px; font-size: 12px; }
 .live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--fire); }
 
 .post { display: grid; gap: 20px; padding: 32px; }
