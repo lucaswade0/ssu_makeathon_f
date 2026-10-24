@@ -5,6 +5,7 @@ import { useCommunitySession } from '../community/session'
 import { cityCenter, clockTime, hasLiveCoverage, NO_COVERAGE, noPerimeters, useEarthquakes, useEvacuationZones, useFireIncidents, useFirePerimeters, useShakeMaps, useWeatherAlerts } from '../hazards/liveHazards'
 import { Icon, ShelterMap } from '../shelters/ShelterMap'
 import { useShelters } from '../shelters/useShelters'
+import { allShown, hazardFilters, weatherAlertShown, zoneShown, type HazardFilter, type ShownHazards } from './hazardFilters'
 import { noShakeMaps, noZones, sampleShelters, type Incident, type MapSelection, type Shelter, type ZoneProperties } from './sampleData'
 
 type MapTab = 'incidents' | 'shelters' | 'alerts'
@@ -124,16 +125,26 @@ export function MapPage({ city }: { city: string }) {
   const shelters = showSample ? sim.state?.shelters ?? [] : configured ? sheltersQuery.data ?? [] : sampleShelters
   // Uncovered cities have no coordinates, so they use Santa Rosa. Sample data exists for Santa Rosa (fire) and Petaluma (flood).
   const center = cityCenter(showSample ? SIM_CITY : covered ? city : 'Santa Rosa')
-  const incidents = showSample ? sim.state?.incidents ?? [] : [...firesQuery.data ?? [], ...quakesQuery.data ?? []]
-  const zoneCollection = showSample ? sim.state?.zones ?? noZones : zonesQuery.data ?? noZones
-  const perimeters = showSample ? noPerimeters : perimetersQuery.data ?? noPerimeters
-  const shakeMaps = showSample ? noShakeMaps : shakeMapsQuery.data ?? noShakeMaps
+  const [shown, setShown] = useState<ShownHazards>(allShown)
+  const hiddenLabels = hazardFilters.filter(f => !shown[f.id]).map(f => f.label)
+  const allIncidents = showSample ? sim.state?.incidents ?? [] : [...firesQuery.data ?? [], ...quakesQuery.data ?? []]
+  const incidents = allIncidents.filter(i => shown[i.kind])
+  const allZones = showSample ? sim.state?.zones ?? noZones : zonesQuery.data ?? noZones
+  const zoneCollection = { ...allZones, features: allZones.features.filter(f => zoneShown(f.properties.hazard, shown)) }
+  const perimeters = !shown.fire || showSample ? noPerimeters : perimetersQuery.data ?? noPerimeters
+  const shakeMaps = !shown.earthquake || showSample ? noShakeMaps : shakeMapsQuery.data ?? noShakeMaps
+  const weatherAlerts = weatherQuery.data?.filter(a => weatherAlertShown(a.event, shown))
   // Multi-part zones arrive as several features; list each zone once.
   const zones = [...new Map(zoneCollection.features.map(f => [f.properties.zone_id, f.properties])).values()]
 
   function select(next: MapSelection) {
     setSelection(next)
     setTab(tabFor[next.type])
+  }
+
+  function toggleHazard(id: HazardFilter) {
+    setShown({ ...shown, [id]: !shown[id] })
+    setSelection(null)
   }
 
   const isActive = (type: MapSelection['type'], id: string) => selection?.type === type && selection.id === id
@@ -158,6 +169,18 @@ export function MapPage({ city }: { city: string }) {
       </section>
 
       <aside className="map-panel" aria-label="Map details">
+        <fieldset className="hazard-filters">
+          <legend>Show on map</legend>
+          {hazardFilters.map(f => (
+            <button key={f.id} type="button" className={`hazard-chip ${f.id}${shown[f.id] ? ' on' : ''}`} aria-pressed={shown[f.id]} onClick={() => toggleHazard(f.id)}>
+              <span className="hazard-switch" aria-hidden="true" />
+              <Icon name={f.id} size={16} />
+              {f.label}
+            </button>
+          ))}
+          {hiddenLabels.length > 0 && <p className="muted">Hidden: {hiddenLabels.join(', ')}. Evacuation zones of unknown type always show.</p>}
+        </fieldset>
+
         <div className="map-tabs" role="tablist" aria-label="Map lists">
           {tabs.map(t => (
             <button
@@ -187,10 +210,11 @@ export function MapPage({ city }: { city: string }) {
               {(firesQuery.isPending || quakesQuery.isPending) && <p className="muted">Loading wildfire and earthquake data…</p>}
               {firesQuery.isError && <p role="alert" className="error">Couldn't reach the live wildfire feed.</p>}
               {quakesQuery.isError && <p role="alert" className="error">Couldn't reach the USGS earthquake feed.</p>}
-              {firesQuery.isSuccess && quakesQuery.isSuccess && incidents.length === 0 && (
+              {firesQuery.isSuccess && quakesQuery.isSuccess && allIncidents.length === 0 && (
                 <p className="muted">No active wildfires or M2.5+ earthquakes in the past week within about 65 km. This does not confirm that the area is safe.</p>
               )}
             </>}
+            {allIncidents.length > 0 && incidents.length === 0 && <p className="muted">All incidents here are hidden by the filters above.</p>}
             <ul className="map-list">
               {incidents.map(i => (
                 <Row key={i.id} icon={i.kind} tone={i.kind} title={i.title}
@@ -239,9 +263,10 @@ export function MapPage({ city }: { city: string }) {
               {weatherQuery.isPending && <p className="muted">Loading National Weather Service alerts…</p>}
               {weatherQuery.isError && <p role="alert" className="error">Couldn't reach the National Weather Service. Check weather.gov for current alerts.</p>}
               {weatherQuery.isSuccess && weatherQuery.data.length === 0 && <p className="muted">No active weather alerts for {city}.</p>}
+              {weatherQuery.isSuccess && weatherQuery.data.length > 0 && weatherAlerts?.length === 0 && <p className="muted">All weather alerts here are hidden by the filters above.</p>}
             </> : <p className="muted">{NO_COVERAGE} Check weather.gov for alerts in {city}.</p>}
             <ul className="map-list">
-              {weatherQuery.data?.map(a => (
+              {weatherAlerts?.map(a => (
                 <li key={a.id} className="weather-alert">
                   <strong>{a.event}</strong>
                   <small>{a.severity} · {a.senderName}{a.expires ? ` · Until ${new Date(a.expires).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}</small>
@@ -256,7 +281,7 @@ export function MapPage({ city }: { city: string }) {
             {!showSample && covered && <>
               {zonesQuery.isPending && <p className="muted">Loading Cal OES evacuation zones…</p>}
               {zonesQuery.isError && <p role="alert" className="error">Couldn't reach Cal OES. Check your county emergency website for current orders and warnings.</p>}
-              {zonesQuery.isSuccess && zones.length === 0 && (
+              {zonesQuery.isSuccess && allZones.features.length === 0 && (
                 <p className="muted">No active evacuation orders or warnings reported by Cal OES within about 65 km. This does not confirm that the area is safe.</p>
               )}
             </>}
