@@ -227,7 +227,7 @@ function App() {
     if (draftCity.trim()) setCity(draftCity.trim())
   }
   return <div className="site">
-    <header><h1>Wildfire Watch</h1><p>Community feed</p></header>
+    <header><h1>Safety SAM</h1><p>Community feed for local disasters</p></header>
     <main>
       <p className="intro">Local updates and questions, with official instructions shown separately.</p>
       <div className="layout">
