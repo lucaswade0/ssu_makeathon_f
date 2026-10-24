@@ -6,7 +6,7 @@ import { useCommunitySession } from './session'
 import type { FeedCursor, PostEdit, PostInput, PostType } from './schemas'
 
 // Refetch when another resident changes a table. Polling stays on as a fallback if the socket drops.
-function useRealtimeInvalidate(table: 'posts' | 'post_replies', channelName: string, queryKey: readonly unknown[], enabled: boolean, matches?: (row: Record<string, unknown>) => boolean) {
+export function useRealtimeInvalidate(table: 'posts' | 'post_replies' | 'resources', channelName: string, queryKey: readonly unknown[], enabled: boolean, matches?: (row: Record<string, unknown>) => boolean) {
   const client = useQueryClient()
   const keyString = JSON.stringify(queryKey)
   useEffect(() => {

@@ -1,6 +1,8 @@
 import type { CommunityPost, OfficialAlert } from '../community/schemas'
 import { noZones, sampleShelters, sampleZones, type Incident, type Shelter, type ZoneCollection } from '../map/sampleData'
 import type { NewsItem } from '../news/newsItems'
+import { sampleExtras, shelterToResource } from '../resources/sampleData'
+import type { Resource } from '../resources/schemas'
 
 // A scripted, sample-only wildfire timeline for Santa Rosa. Nothing here is real or predictive:
 // every step is pre-written, and all agencies and residents are placeholders.
@@ -12,6 +14,7 @@ export type SimState = {
   incidents: Incident[]
   zones: ZoneCollection
   shelters: Shelter[]
+  resources: Resource[]
   news: NewsItem[]
   posts: CommunityPost[]
 }
@@ -23,6 +26,8 @@ type Effects = {
   removeZones?: string[]
   openShelters?: string[]
   closeShelters?: string[]
+  openResources?: string[]
+  closeResources?: string[]
   news?: Omit<NewsItem, 'id' | 'time' | 'sample'>[]
   posts?: { name: string; type: CommunityPost['post_type']; body: string }[]
 }
@@ -91,6 +96,7 @@ export const steps: SimStep[] = [
     effects: {
       incident: { acres: 240, containment: 10 },
       addZones: ['SRO-E011'],
+      openResources: ['resource-transport-1'],
       alert: { title: 'Evacuation order: Zone SRO-E011', instructions: 'Leave now. Do not wait. Take your pets and essentials, and follow the routes given by local officials.', source_name: county },
       news: [{ hazard: 'evacuation', source: county, title: 'Evacuation order · Zone SRO-E011', summary: 'Leave now. Follow instructions from local officials.', expires: null, url: 'https://www.caloes.ca.gov/' }],
       posts: [{ name: 'Lena R.', type: 'update', body: 'Mandatory order is out for E011. Roads out are slow but moving. Please do not wait.' }],
@@ -102,6 +108,7 @@ export const steps: SimStep[] = [
     narration: 'An evacuation center opens for residents who need somewhere to go.',
     effects: {
       openShelters: ['shelter-1'],
+      openResources: ['resource-water-1', 'resource-pets-1'],
       news: [{ hazard: 'evacuation', source: county, title: 'Evacuation center open at Finley Community Center', summary: 'Cots, water, and charging available. Check with the center about pets.', expires: null, url: 'https://www.caloes.ca.gov/' }],
       posts: [{ name: 'Marcus O.', type: 'question', body: 'Does anyone know if the shelter at Finley is accepting pets?' }],
     },
@@ -113,6 +120,7 @@ export const steps: SimStep[] = [
     effects: {
       incident: { acres: 480, containment: 25 },
       openShelters: ['shelter-3'],
+      openResources: ['resource-medical-1'],
       news: [{ hazard: 'fire', source: 'Sample data (CAL FIRE)', title: 'Containment improves on Fountaingrove fire', summary: '480 acres · 25% contained · Fountaingrove Pkwy near Round Barn Blvd', expires: null, url: 'https://inciweb.wildfire.gov/' }],
       posts: [
         { name: 'Priya S.', type: 'general', body: 'Staying with family in Rohnert Park tonight. Thank you to everyone checking in on neighbors.' },
@@ -128,6 +136,7 @@ export const steps: SimStep[] = [
       incident: { acres: 510, containment: 40 },
       removeZones: ['SRO-E011'],
       openShelters: ['shelter-2'],
+      openResources: ['resource-charging-1'],
       alert: { title: 'Evacuation order lifted for Zone SRO-E011', instructions: 'The order for Zone SRO-E011 has been reduced to a warning. Stay ready to leave. Check official sources before returning home.', source_name: county },
       news: [
         { hazard: 'evacuation', source: county, title: 'Order lifted · Zone SRO-E011', summary: 'Reduced to a warning. Check official sources before returning home.', expires: null, url: 'https://www.caloes.ca.gov/' },
@@ -143,6 +152,7 @@ export const steps: SimStep[] = [
       incident: { acres: 520, containment: 70 },
       removeZones: ['SRO-E012'],
       closeShelters: ['shelter-1', 'shelter-2', 'shelter-3'],
+      closeResources: sampleExtras.map(resource => resource.id),
       alert: { title: 'Evacuation warnings lifted', instructions: 'All evacuation warnings for this fire are lifted. Check official sources for road and utility updates before you return.', source_name: county },
       news: [{ hazard: 'evacuation', source: county, title: 'Evacuation centers closing', summary: 'Finley Community Center and the overflow shelter close today as warnings are lifted.', expires: null, url: 'https://www.caloes.ca.gov/' }, { hazard: 'fire', source: 'Sample data (CAL FIRE)', title: 'Fountaingrove fire 70% contained', summary: '520 acres · 70% contained · Fountaingrove Pkwy near Round Barn Blvd', expires: null, url: 'https://inciweb.wildfire.gov/' }],
       posts: [{ name: 'Dev T.', type: 'update', body: 'Heading home. Power is back on our street but the smell of smoke is strong. Keep windows closed.' }],
@@ -166,6 +176,7 @@ export function simulationState(index: number, base: number): SimState {
   let incident: Incident | null = null
   const zones = new Map<string, ZoneCollection['features'][number]>()
   const shelters = new Map<string, Shelter>()
+  const extras = new Map<string, Resource>()
   const news: NewsItem[] = []
   const posts: CommunityPost[] = []
 
@@ -189,6 +200,11 @@ export function simulationState(index: number, base: number): SimState {
       if (shelter) shelters.set(id, { ...shelter, created_at: time, updated_at: time })
     }
     for (const id of e.closeShelters ?? []) shelters.delete(id)
+    for (const id of e.openResources ?? []) {
+      const resource = sampleExtras.find(r => r.id === id)
+      if (resource) extras.set(id, { ...resource, created_at: time, updated_at: time, last_confirmed_at: time })
+    }
+    for (const id of e.closeResources ?? []) extras.delete(id)
     e.news?.forEach((item, n) => news.push({ ...item, id: `sim-news-${step.id}-${n}`, time, sample: true }))
     e.posts?.forEach((post, n) => posts.unshift({
       id: `sim-post-${step.id}-${n}`, author_id: `sim-author-${post.name}`, city: SIM_CITY, post_type: post.type, body: post.body,
@@ -202,6 +218,7 @@ export function simulationState(index: number, base: number): SimState {
     incidents: incident ? [incident] : [],
     zones: zones.size ? { type: 'FeatureCollection', features: [...zones.values()] } : noZones,
     shelters: [...shelters.values()],
+    resources: [...[...shelters.values()].map(shelterToResource), ...extras.values()],
     news,
     posts,
   }

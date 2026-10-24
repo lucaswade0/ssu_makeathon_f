@@ -5,10 +5,13 @@ import type { FeatureCollection, LineString, MultiLineString, Polygon } from 'ge
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString()
 
 export type ShelterStatus = 'official' | 'verified' | 'community_submitted'
+export type MapResourceCategory = 'shelter' | 'water_food' | 'medical' | 'charging' | 'pets' | 'transportation'
 
 // Same fields as the shelters table, so Phase 5 can swap in real rows.
 export type Shelter = {
   id: string
+  /** Defaults to 'shelter'. Other categories are shown on the map too. */
+  category?: MapResourceCategory
   name: string
   description: string
   location_text: string

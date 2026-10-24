@@ -8,6 +8,7 @@ import type { CommunityPost, CommunityReply, PostType } from './features/communi
 import { hasLiveCoverage, NO_COVERAGE, topWeatherAlert, useEarthquakes, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
 import { MapPage } from './features/map/MapPage'
 import { NewsPage } from './features/news/NewsPage'
+import { ResourcesPage } from './features/resources/ResourcesPage'
 import { useSimulation } from './features/simulation/context'
 import { AppShell, ComingSoon, type Page } from './layout/AppShell'
 import './App.css'
@@ -360,7 +361,7 @@ function App() {
     </section>}
     {page === 'map' && <MapPage city={city} />}
     {page === 'news' && <NewsPage city={city} />}
-    {page === 'resources' && <ComingSoon title={`Resources in ${city}`} text="Shelters and supplies, labeled by who confirmed them. Coming in the next update." />}
+    {page === 'resources' && <ResourcesPage city={city} onSignIn={openSignIn} />}
     {page === 'sam' && <ComingSoon title="Meet SAM" text="SAM will answer general preparedness questions and point you to official instructions. Coming soon." />}
     {page === 'signin' && <SignInPage onBack={() => setPage('feed')} />}
   </AppShell>

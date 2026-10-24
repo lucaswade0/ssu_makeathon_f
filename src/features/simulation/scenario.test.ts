@@ -85,4 +85,27 @@ describe('wildfire simulation scenario', () => {
     expect(simulationState(last, base).shelters).toEqual([])
     expect(simulationState(last, base).news.some(item => item.title === 'Evacuation centers closing')).toBe(true)
   })
+
+  it('opens non-shelter resources as the scenario unfolds and closes them at the end', () => {
+    const ids = (index: number) => simulationState(index, base).resources.map(r => r.id)
+    expect(ids(0)).toEqual([])
+    expect(ids(at('order'))).toContain('resource-transport-1')
+    expect(ids(at('shelter'))).toEqual(expect.arrayContaining(['shelter-1', 'resource-water-1', 'resource-pets-1']))
+    expect(ids(at('containment'))).toContain('resource-medical-1')
+    expect(ids(at('downgrade'))).toContain('resource-charging-1')
+    expect(ids(last)).toEqual([])
+  })
+
+  it('keeps resource shelters in step with the map shelters', () => {
+    for (let i = 0; i <= last; i++) {
+      const state = simulationState(i, base)
+      const shelterIds = state.resources.filter(r => r.category === 'shelter').map(r => r.id).sort()
+      expect(shelterIds).toEqual(state.shelters.map(s => s.id).sort())
+    }
+  })
+
+  it('keeps the charging resource community-submitted', () => {
+    const charging = simulationState(at('downgrade'), base).resources.find(r => r.id === 'resource-charging-1')
+    expect(charging?.status).toBe('community_submitted')
+  })
 })

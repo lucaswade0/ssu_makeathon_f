@@ -4,14 +4,19 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useRef } from 'react'
 import { setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
-import { Activity, Droplets, Flame, Tent, ThermometerSun, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { Activity, BatteryCharging, Bus, Droplets, Flame, HeartPulse, PawPrint, Tent, ThermometerSun, TriangleAlert, Utensils, type LucideIcon } from 'lucide-react'
 import type { PerimeterCollection } from '../hazards/liveHazards'
-import type { Incident, MapSelection, ShakeMapCollection, Shelter, ZoneCollection } from '../map/sampleData'
+import type { Incident, MapResourceCategory, MapSelection, ShakeMapCollection, Shelter, ZoneCollection } from '../map/sampleData'
 
 // Vite's dev bundling breaks MapLibre's default worker path, so point it at the file directly.
 setWorkerUrl(workerUrl)
 
-const icons: Record<'fire' | 'flood' | 'heat' | 'earthquake' | 'shelter' | 'alert', LucideIcon> = {
+const icons: Record<'fire' | 'flood' | 'heat' | 'earthquake' | 'shelter' | 'alert' | MapResourceCategory, LucideIcon> = {
+  water_food: Utensils,
+  medical: HeartPulse,
+  charging: BatteryCharging,
+  pets: PawPrint,
+  transportation: Bus,
   fire: Flame,
   earthquake: Activity,
   flood: Droplets,
@@ -138,7 +143,7 @@ export function ShelterMap({ shelters, incidents, zones, perimeters, shakeMaps, 
         <Marker key={s.id} latitude={s.latitude} longitude={s.longitude}
           onClick={e => { e.originalEvent.stopPropagation(); onSelect({ type: 'shelter', id: s.id }) }}>
           <button type="button" className={`map-marker shelter ${s.status}${isSelected('shelter', s.id) ? ' selected' : ''}`} aria-label={`${s.name} (${s.status.replace('_', ' ')})`}>
-            <Icon name="shelter" />
+            <Icon name={s.category ?? 'shelter'} />
           </button>
         </Marker>
       ))}

@@ -24,7 +24,8 @@ Start here. This section is the quickest way to get oriented; the rest of the fi
 | `src/features/community/` | Supabase API (`api.ts`), TanStack Query hooks with realtime refresh (`hooks.ts`), Zod schemas, session context |
 | `src/features/hazards/liveHazards.ts` | Live public data: NWS alerts, NIFC wildfires and perimeters, Cal OES evacuation zones, USGS earthquakes and ShakeMaps. Only eight Sonoma County cities have coordinates. |
 | `src/features/map/` | Map page and the seeded sample data and types (`sampleData.ts`) |
-| `src/features/shelters/` | Shelter map layer and the Supabase shelter query |
+| `src/features/shelters/` | The map layer. It draws a pin for every resource category, using the same `resources` query as the Resources page |
+| `src/features/resources/` | Resources page, API, hooks, schemas, and sample data (all six categories) |
 | `src/features/news/` | News page and the adapters (`newsItems.ts`) that turn each source into one card shape |
 | `src/features/simulation/` | The disaster simulation: scripted scenario (`scenario.ts`), controls reducer and context (`context.ts`), provider, floating bar |
 | `supabase/migrations/` | Database migrations. Never edit an applied one. |
@@ -35,17 +36,18 @@ Start here. This section is the quickest way to get oriented; the rest of the fi
 - Auth: Supabase email and password. The hosted project must have "Confirm email" turned off for the demo. A header profile menu shows the display name and Sign out.
 - Map: live incidents, evacuation zones, perimeters, ShakeMap rings, weather alerts, and shelters, each with source and fetch time.
 - News: a "Situation updates" list of public-data items with a hazard filter, source, time, and a "Data sources" panel.
+- Resources: a card grid with a type and status filter (shelter, water and food, medical, charging, pets, transportation). Each card shows status, source, last-confirmed time, and a stale label after 7 days. Signed-in residents can add community-submitted resources by searching for a place or clicking a map and dropping a draggable pin (a pin is required), report inaccurate or unsafe ones, and remove their own. Needs the `resources` migration applied.
 - Disaster simulation: a floating bar (bottom of every page) steps through a scripted, sample-only Santa Rosa wildfire. It drives the pinned alert and sample posts in the feed, incidents, zones, and shelters on the map, and cards in News. All simulated data is labeled sample data. There are no per-page sample toggles; the simulation is the only sample mode.
 - Tests: reducer, scenario, adapter, API, and server-rendered page tests (`npm test`).
 
 ### Known gaps and good next tasks
 
 1. No official alerts exist in the database and nothing can create them (no insert policy). Seed a sample alert or mirror NWS alerts into `official_alerts`, keeping the NWS source name and times.
-2. Resources and Meet SAM are "coming soon" placeholders. Resources should show shelters and supplies by category with trust labels. SAM must follow the Safety assistant rules below.
-3. No "report inaccurate or unsafe" flow or reports table, which the data trust rules require.
-4. Shelter RLS lets a user set their own shelter's `status` to official or verified. Fix with a new migration that forces `community_submitted` for regular users.
-5. Photo attachments are not built (no upload UI or storage policies). Hazard type is not in the schema yet (see Multi-hazard direction).
-6. Resource records lack a `category` and a `last_confirmed_at` timestamp for stale handling.
+2. Meet SAM is a "coming soon" placeholder. SAM must follow the Safety assistant rules below.
+3. Reports are stored in `resource_reports` but nothing reads them. There is no reviewer view and no way to mark a resource verified or official except the service role.
+4. Photo attachments are not built (no upload UI or storage policies). Hazard type is not in the schema yet (see Multi-hazard direction).
+5. The old `shelters` table is unused but still exists, with the insecure policy that lets a user set their own shelter's status to official or verified. Drop it or lock it down in a new migration.
+6. Place search and address lookup in the add-resource form use the public OpenStreetMap Nominatim server, which allows an absolute maximum of one request per second for the whole app and forbids autocomplete. `geocode.ts` queues every call at least 1.1 seconds apart, caches successful answers, and drops superseded lookups; search runs only on a button press. For heavy use, switch to a hosted geocoder behind a server-side function. If search fails, clicking the map still works.
 7. No end-to-end tests, and hosted RLS is not tested.
 
 ### Working with the Supabase CLI
@@ -139,6 +141,7 @@ Applied migrations (never edit these):
 1. `20261023000000_initial_schema.sql`: tables, RLS, new-user profile trigger.
 2. `20261024000000_private_profile_defaults.sql`: stops deriving public names from emails.
 3. `20261025000000_realtime_feed.sql`: adds `posts` and `post_replies` to the Realtime publication.
+4. `20261026000000_resources.sql`: `resources` and `resource_reports` tables with RLS. Copies shelters in. Residents can only create and keep community-submitted resources. Check with `supabase db push --dry-run` whether it has been applied before assuming it has.
 
 When adding a new table or policy, include the relevant RLS policy in the same migration. Keep user-owned data and official responder data separate.
 
@@ -158,6 +161,7 @@ Where the information shown in Safety SAM comes from. Integration status: NWS al
 | USGS Water Services | Flood | Stream gauge height and discharge for nearby gauges | `https://waterservices.usgs.gov/nwis/iv/` | No key. |
 | NASA FIRMS | Wildfire | Satellite active-fire detections, an optional layer | `https://firms.modaps.eosdis.nasa.gov/api/` | Free map key. Keep the key server-side. |
 | AirNow API | Wildfire smoke, air quality | Current air quality index by location, an optional layer | `https://docs.airnowapi.org/` | Free key. Keep the key server-side. |
+| OpenStreetMap Nominatim place search | All | Address and place search when adding a resource (`src/features/resources/geocode.ts`) | `https://nominatim.openstreetmap.org/search` | No key. About 1 request per second, no autocomplete, show OpenStreetMap attribution. Typed search text is sent to this third party. |
 | OpenStreetMap data with a MapLibre-compatible tile provider | All | Base map | `VITE_MAP_STYLE_URL` | Show the OpenStreetMap and tile provider attribution. Do not use the public OSM tile servers for heavy traffic. |
 
 Not backed by an open feed we have verified:

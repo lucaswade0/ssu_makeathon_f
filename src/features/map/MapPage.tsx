@@ -4,15 +4,17 @@ import { SIM_CITY } from '../simulation/scenario'
 import { useCommunitySession } from '../community/session'
 import { cityCenter, clockTime, hasLiveCoverage, NO_COVERAGE, noPerimeters, useEarthquakes, useEvacuationZones, useFireIncidents, useFirePerimeters, useShakeMaps, useWeatherAlerts } from '../hazards/liveHazards'
 import { Icon, ShelterMap } from '../shelters/ShelterMap'
-import { useShelters } from '../shelters/useShelters'
+import { useResources } from '../resources/hooks'
+import { resourceToShelter, sampleResources } from '../resources/sampleData'
+import { categoryLabels } from '../resources/schemas'
 import { allShown, hazardFilters, weatherAlertShown, zoneShown, type HazardFilter, type ShownHazards } from './hazardFilters'
-import { noShakeMaps, noZones, sampleShelters, type Incident, type MapSelection, type Shelter, type ZoneProperties } from './sampleData'
+import { noShakeMaps, noZones, type Incident, type MapSelection, type Shelter, type ZoneProperties } from './sampleData'
 
 type MapTab = 'incidents' | 'shelters' | 'alerts'
 
 const tabs: { id: MapTab; label: string }[] = [
   { id: 'incidents', label: 'Incidents' },
-  { id: 'shelters', label: 'Shelters' },
+  { id: 'shelters', label: 'Resources' },
   { id: 'alerts', label: 'Alerts' },
 ]
 
@@ -76,8 +78,8 @@ function Detail({ selection, shelters, incidents, zones }: { selection: MapSelec
     if (!s) return null
     return <>
       <div className="detail-head">
-        <span className={`map-row-icon ${s.status}`}><Icon name="shelter" /></span>
-        <div><h2>{s.name}</h2><p className="muted">{s.location_text}</p></div>
+        <span className={`map-row-icon ${s.status}`}><Icon name={s.category ?? 'shelter'} /></span>
+        <div><h2>{s.name}</h2><p className="muted">{categoryLabels[s.category ?? 'shelter']} · {s.location_text}</p></div>
       </div>
       <span className={`status-badge ${s.status}`}>{statusLabel[s.status]}</span>
       <p>{s.description}</p>
@@ -104,10 +106,10 @@ export function MapPage({ city }: { city: string }) {
   const [tab, setTab] = useState<MapTab>('incidents')
   const [selection, setSelection] = useState<MapSelection | null>(null)
   const { configured } = useCommunitySession()
-  const sheltersQuery = useShelters(city)
+  const resourcesQuery = useResources(city)
 
   // Without Supabase settings, fall back to sample data so the demo still works offline.
-  const fetchedAt = sheltersQuery.dataUpdatedAt ? clockTime(sheltersQuery.dataUpdatedAt) : null
+  const fetchedAt = resourcesQuery.dataUpdatedAt ? clockTime(resourcesQuery.dataUpdatedAt) : null
 
   const firesQuery = useFireIncidents(city)
   const quakesQuery = useEarthquakes(city)
@@ -122,7 +124,8 @@ export function MapPage({ city }: { city: string }) {
   const sim = useSimulation()
   const showSample = sim.active
   const liveShelters = configured && !showSample
-  const shelters = showSample ? sim.state?.shelters ?? [] : configured ? sheltersQuery.data ?? [] : sampleShelters
+  // Every resource category gets a pin, not only shelters. Live data shares one query with the Resources page.
+  const shelters = (showSample ? sim.state?.resources ?? [] : configured ? resourcesQuery.data ?? [] : sampleResources).map(resourceToShelter)
   // Uncovered cities have no coordinates, so they use Santa Rosa. Sample data exists for Santa Rosa (fire) and Petaluma (flood).
   const center = cityCenter(showSample ? SIM_CITY : covered ? city : 'Santa Rosa')
   const [shown, setShown] = useState<ShownHazards>(allShown)
@@ -162,8 +165,8 @@ export function MapPage({ city }: { city: string }) {
           <span><i className="swatch incident" />Incident</span>
           <span><i className="swatch perimeter" />Fire perimeter</span>
           <span><i className="swatch shaking" />Earthquake shaking rings</span>
-          <span><i className="swatch official" />Official shelter</span>
-          <span><i className="swatch verified" />Verified shelter</span>
+          <span><i className="swatch official" />Official resource</span>
+          <span><i className="swatch verified" />Verified resource</span>
           <span><i className="swatch community" />Community-submitted</span>
         </details>
       </section>
@@ -230,30 +233,30 @@ export function MapPage({ city }: { city: string }) {
           </>}
 
           {tab === 'shelters' && <>
-            <h2>{showSample ? 'Simulated shelters' : `Shelters near ${city}`}</h2>
-            {liveShelters && sheltersQuery.isPending && <p className="muted">Loading shelters…</p>}
-            {liveShelters && sheltersQuery.isError && (
+            <h2>{showSample ? 'Simulated resources' : `Resources near ${city}`}</h2>
+            {liveShelters && resourcesQuery.isPending && <p className="muted">Loading resources…</p>}
+            {liveShelters && resourcesQuery.isError && (
               <div role="alert">
-                <p>Couldn't load shelters. Check your connection and try again.</p>
-                <button type="button" onClick={() => void sheltersQuery.refetch()}>Try again</button>
+                <p>Couldn't load resources. Check your connection and try again.</p>
+                <button type="button" onClick={() => void resourcesQuery.refetch()}>Try again</button>
               </div>
             )}
-            {!(liveShelters && (sheltersQuery.isPending || sheltersQuery.isError)) && shelters.length === 0 && (
-              <p className="muted">{showSample ? 'No shelters have opened yet in this simulation step.' : `No shelters listed for ${city} yet.`}</p>
+            {!(liveShelters && (resourcesQuery.isPending || resourcesQuery.isError)) && shelters.length === 0 && (
+              <p className="muted">{showSample ? 'No resources have opened yet in this simulation step.' : `No resources listed for ${city} yet.`}</p>
             )}
             <ul className="map-list">
               {shelters.map(s => (
-                <Row key={s.id} icon="shelter" tone={s.status} title={s.name}
-                  meta={`${statusLabel[s.status]} · ${timeAgo(s.updated_at)}`}
+                <Row key={s.id} icon={s.category ?? 'shelter'} tone={s.status} title={s.name}
+                  meta={`${categoryLabels[s.category ?? 'shelter']} · ${statusLabel[s.status]} · ${timeAgo(s.updated_at)}`}
                   active={isActive('shelter', s.id)} onClick={() => select({ type: 'shelter', id: s.id })} />
               ))}
             </ul>
             <p className="muted map-source">
               {showSample
-                ? 'Simulation data. Not real shelters.'
+                ? 'Simulation data. Not real resources.'
                 : configured
-                ? `Source: Safety SAM shelter list${fetchedAt ? ` · Fetched ${fetchedAt}` : ''}`
-                : 'Sample shelters. Connect Supabase to load live data.'}
+                ? `Source: Safety SAM resource list${fetchedAt ? ` · Fetched ${fetchedAt}` : ''}`
+                : 'Sample resources. Connect Supabase to load live data.'}
             </p>
           </>}
 
