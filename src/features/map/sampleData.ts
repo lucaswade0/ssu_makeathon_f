@@ -121,11 +121,21 @@ export const sampleIncidents: Incident[] = [
     source: 'Sample data (National Weather Service)',
     updated_at: minutesAgo(120),
   },
+  {
+    id: 'incident-4',
+    kind: 'flood',
+    title: 'Flooding · Petaluma River',
+    location_text: 'Petaluma River near downtown Petaluma',
+    latitude: 38.2335,
+    longitude: -122.6375,
+    source: 'Sample data (National Weather Service)',
+    updated_at: minutesAgo(10),
+  },
 ]
 
 export type ZoneCollection = FeatureCollection<Polygon, ZoneProperties>
 
-// No live evacuation-zone source is connected yet, so live mode draws none.
+// Empty collection: used while live zones load or fail.
 export const noZones: ZoneCollection = { type: 'FeatureCollection', features: [] }
 
 // GeoJSON uses [longitude, latitude], and each ring ends on its first point.
@@ -163,6 +173,41 @@ export const sampleZones: ZoneCollection = {
         coordinates: [[
           [-122.722, 38.474], [-122.703, 38.472], [-122.697, 38.484],
           [-122.705, 38.494], [-122.72, 38.492], [-122.722, 38.474],
+        ]],
+      },
+    },
+    // Petaluma flood: warning first so the order draws on top, like the Santa Rosa zones.
+    {
+      type: 'Feature',
+      properties: {
+        zone_id: 'PET-E102',
+        level: 'warning',
+        instructions: 'River levels are rising. Move to higher ground if you are near the river, and avoid flooded roads.',
+        source: 'Sample data (Sonoma County)',
+        issued_at: minutesAgo(40),
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [-122.656, 38.247], [-122.638, 38.2445], [-122.623, 38.233], [-122.617, 38.223],
+          [-122.626, 38.217], [-122.640, 38.226], [-122.652, 38.235], [-122.658, 38.242], [-122.656, 38.247],
+        ]],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        zone_id: 'PET-E101',
+        level: 'order',
+        instructions: 'Leave now for higher ground. Do not drive through flooded streets. Follow instructions from local officials.',
+        source: 'Sample data (Sonoma County)',
+        issued_at: minutesAgo(15),
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [-122.648, 38.242], [-122.6395, 38.2395], [-122.630, 38.231], [-122.6255, 38.2255],
+          [-122.630, 38.2225], [-122.636, 38.229], [-122.6445, 38.236], [-122.650, 38.239], [-122.648, 38.242],
         ]],
       },
     },

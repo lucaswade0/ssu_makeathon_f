@@ -116,8 +116,8 @@ export function MapPage({ city }: { city: string }) {
   // Live mode shows only real data. The sample scenario swaps in demo incidents and zones together,
   // so a sample evacuation zone is never drawn without the sample fire that explains it.
   const [showSample, setShowSample] = useState(false)
-  // The sample scenario is drawn in Santa Rosa, and uncovered cities have no coordinates, so both use Santa Rosa.
-  const center = cityCenter(covered && !showSample ? city : 'Santa Rosa')
+  // Uncovered cities have no coordinates, so they use Santa Rosa. Sample data exists for Santa Rosa (fire) and Petaluma (flood).
+  const center = cityCenter(covered ? city : 'Santa Rosa')
   const incidents = showSample ? sampleIncidents : firesQuery.data ?? []
   const zoneCollection = showSample ? sampleZones : zonesQuery.data ?? noZones
   const perimeters = showSample ? noPerimeters : perimetersQuery.data ?? noPerimeters
