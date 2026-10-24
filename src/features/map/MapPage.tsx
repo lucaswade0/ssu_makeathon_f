@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCommunitySession } from '../community/session'
-import { clockTime, hasLiveCoverage, NO_COVERAGE, noPerimeters, useEvacuationZones, useFireIncidents, useFirePerimeters, useWeatherAlerts } from '../hazards/liveHazards'
+import { cityCenter, clockTime, hasLiveCoverage, NO_COVERAGE, noPerimeters, useEvacuationZones, useFireIncidents, useFirePerimeters, useWeatherAlerts } from '../hazards/liveHazards'
 import { Icon, ShelterMap } from '../shelters/ShelterMap'
 import { useShelters } from '../shelters/useShelters'
 import { noZones, sampleIncidents, sampleShelters, sampleZones, type Incident, type MapSelection, type Shelter, type ZoneProperties } from './sampleData'
@@ -116,6 +116,8 @@ export function MapPage({ city }: { city: string }) {
   // Live mode shows only real data. The sample scenario swaps in demo incidents and zones together,
   // so a sample evacuation zone is never drawn without the sample fire that explains it.
   const [showSample, setShowSample] = useState(false)
+  // The sample scenario is drawn in Santa Rosa, and uncovered cities have no coordinates, so both use Santa Rosa.
+  const center = cityCenter(covered && !showSample ? city : 'Santa Rosa')
   const incidents = showSample ? sampleIncidents : firesQuery.data ?? []
   const zoneCollection = showSample ? sampleZones : zonesQuery.data ?? noZones
   const perimeters = showSample ? noPerimeters : perimetersQuery.data ?? noPerimeters
@@ -137,7 +139,7 @@ export function MapPage({ city }: { city: string }) {
   return (
     <div className="map-page">
       <section className="map-area" aria-label="Map">
-        <ShelterMap shelters={shelters} incidents={incidents} zones={zoneCollection} perimeters={perimeters} selection={selection} onSelect={select} />
+        <ShelterMap shelters={shelters} incidents={incidents} zones={zoneCollection} perimeters={perimeters} center={center} selection={selection} onSelect={select} />
         {showSample && <p className="sample-banner" role="status">Sample scenario: these incidents and evacuation zones are not real events.</p>}
         <details className="map-legend" open>
           <summary>Legend</summary>

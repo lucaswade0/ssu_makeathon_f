@@ -28,12 +28,18 @@ type Props = {
   incidents: Incident[]
   zones: ZoneCollection
   perimeters: PerimeterCollection
+  center: { lat: number; lng: number }
   selection: MapSelection | null
   onSelect: (selection: MapSelection) => void
 }
 
-export function ShelterMap({ shelters, incidents, zones, perimeters, selection, onSelect }: Props) {
+export function ShelterMap({ shelters, incidents, zones, perimeters, center, selection, onSelect }: Props) {
   const mapRef = useRef<MapRef>(null)
+
+  // Follow the selected city. The first render uses initialViewState, so this only moves on later changes.
+  useEffect(() => {
+    mapRef.current?.flyTo({ center: [center.lng, center.lat], zoom: 12 })
+  }, [center])
 
   // Move the camera whenever the selection changes, whether it came from the map or the side panel.
   useEffect(() => {
@@ -59,7 +65,7 @@ export function ShelterMap({ shelters, incidents, zones, perimeters, selection, 
   return (
     <Map
       ref={mapRef}
-      initialViewState={{ latitude: 38.455, longitude: -122.71, zoom: 12 }}
+      initialViewState={{ latitude: center.lat, longitude: center.lng, zoom: 12 }}
       style={{ width: '100%', height: '100%' }}
       mapStyle="https://tiles.openfreemap.org/styles/positron"
       attributionControl={{ compact: true, customAttribution: 'Wildfires: NIFC WFIGS · Evacuation zones: Cal OES · Sample scenario: demo data' }}

@@ -48,7 +48,7 @@ function CityPicker({ city, onChange }: { city: string; onChange: (city: string)
           onChange(match)
           setOpen(false)
         } else {
-          setLocationNote('You’re not near a city with live data yet (only Santa Rosa in this demo). Type your city instead.')
+          setLocationNote('You’re not near a city with live data yet (only Sonoma County in this demo). Type your city instead.')
         }
       },
       () => {
