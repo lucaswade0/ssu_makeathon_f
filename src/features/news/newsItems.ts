@@ -1,4 +1,3 @@
-import type { Earthquake } from '../hazards/earthquakes'
 import type { WeatherAlert } from '../hazards/liveHazards'
 import type { Incident, ZoneProperties } from '../map/sampleData'
 
@@ -46,25 +45,29 @@ export function weatherItems(alerts: WeatherAlert[]): NewsItem[] {
   }))
 }
 
+const incidentHazards: Record<Incident['kind'], NewsHazard> = { fire: 'fire', flood: 'weather', heat: 'weather', earthquake: 'earthquake' }
+
 export function incidentItems(incidents: Incident[], sample: boolean): NewsItem[] {
   return incidents.map(incident => {
-    const fire = incident.kind === 'fire'
-    const details = fire
+    const hazard = incidentHazards[incident.kind]
+    const details = incident.kind === 'fire'
       ? [
         incident.acres === undefined ? 'Size not reported' : `${incident.acres.toLocaleString()} acres`,
         incident.containment === undefined ? 'Containment not reported' : `${incident.containment}% contained`,
         incident.location_text,
       ]
-      : [incident.location_text]
+      : incident.kind === 'earthquake'
+        ? [incident.location_text, 'Magnitude and location can be revised as more data arrives']
+        : [incident.location_text]
     return {
       id: incident.id,
-      hazard: fire ? 'fire' : 'weather',
+      hazard,
       source: incident.source,
       title: incident.title,
       summary: details.join(' · '),
       time: incident.updated_at,
       expires: null,
-      url: sourceUrls[fire ? 'fire' : 'weather'],
+      url: sourceUrls[hazard],
       sample,
     }
   })
@@ -85,18 +88,20 @@ export function zoneItems(zones: ZoneProperties[], sample: boolean): NewsItem[] 
   }))
 }
 
-export function earthquakeItems(quakes: Earthquake[], sample: boolean): NewsItem[] {
-  return quakes.map(quake => ({
-    id: quake.id,
-    hazard: 'earthquake',
-    source: quake.source,
-    title: `Magnitude ${quake.magnitude.toFixed(1)} earthquake · ${quake.place}`,
-    summary: 'Magnitude and location can be revised as more data arrives.',
-    time: quake.time,
-    expires: null,
-    url: quake.url || sourceUrls.earthquake,
-    sample,
-  }))
+export function filterNews(items: NewsItem[], filter: 'all' | NewsHazard): NewsItem[] {
+  return filter === 'all' ? items : items.filter(item => item.hazard === filter)
+}
+
+// Shown only in the sample scenario. Not a real event.
+export const sampleEarthquake: Incident = {
+  id: 'sample-quake-1',
+  kind: 'earthquake',
+  title: 'M3.1 earthquake',
+  location_text: '6 km NW of The Geysers, CA',
+  latitude: 38.81,
+  longitude: -122.83,
+  source: 'Sample data (USGS)',
+  updated_at: new Date(Date.now() - 90 * 60_000).toISOString(),
 }
 
 export function isExpired(item: NewsItem, now: number) {

@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
-import { sampleEarthquakes, useEarthquakes } from '../hazards/earthquakes'
-import { clockTime, hasLiveCoverage, NO_COVERAGE, useEvacuationZones, useFireIncidents, useWeatherAlerts } from '../hazards/liveHazards'
+import { clockTime, hasLiveCoverage, NO_COVERAGE, useEarthquakes, useEvacuationZones, useFireIncidents, useWeatherAlerts } from '../hazards/liveHazards'
 import { sampleIncidents, sampleZones } from '../map/sampleData'
-import { earthquakeItems, hazardLabels, incidentItems, isExpired, sortNews, weatherItems, zoneItems, type NewsHazard, type NewsItem } from './newsItems'
+import { filterNews, hazardLabels, incidentItems, isExpired, sampleEarthquake, sortNews, weatherItems, zoneItems, type NewsHazard, type NewsItem } from './newsItems'
 
 const sources = [
   'National Weather Service (weather alerts)',
@@ -58,14 +57,13 @@ export function NewsPage({ city }: { city: string }) {
   const zoneProperties = [...new Map((zones.data?.features ?? []).map(f => [f.properties.zone_id, f.properties])).values()]
   const sampleZoneProperties = [...new Map(sampleZones.features.map(f => [f.properties.zone_id, f.properties])).values()]
   const all = showSample
-    ? [...incidentItems(sampleIncidents, true), ...zoneItems(sampleZoneProperties, true), ...earthquakeItems(sampleEarthquakes, true)]
+    ? incidentItems([...sampleIncidents, sampleEarthquake], true).concat(zoneItems(sampleZoneProperties, true))
     : [
       ...weatherItems(weather.data ?? []),
-      ...incidentItems(fires.data ?? [], false),
+      ...incidentItems([...(fires.data ?? []), ...(quakes.data ?? [])], false),
       ...zoneItems(zoneProperties, false),
-      ...earthquakeItems(quakes.data ?? [], false),
     ]
-  const items = sortNews(all, now).filter(item => filter === 'all' || item.hazard === filter)
+  const items = filterNews(sortNews(all, now), filter)
 
   const live = !showSample && covered
   const loading = live && queries.some(({ query }) => query.isPending)

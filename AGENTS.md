@@ -25,6 +25,7 @@ Build a polished, dependable demonstration for one selected location and one sel
 - Do not rewrite or delete an existing migration. Add a new timestamped migration for schema changes.
 - Keep commits focused and explain database, security, or behavior changes in the commit message.
 - Run npm run build and npm run lint before handoff.
+- Run npm test before every push. All tests must pass before you push. Do not push with a failing test, and do not skip, delete, or weaken a test to make it pass. Fix the code or the test for a real reason. Add or update tests for any behavior you change.
 - Tell the next contributor what changed, what was validated, and what remains blocked.
 
 ## No AI attribution in GitHub
@@ -36,7 +37,7 @@ Build a polished, dependable demonstration for one selected location and one sel
 
 ## Commands
 
-Run npm install, npm run dev, npm run build, npm run lint, or npm run preview as needed. Run npm run build and npm run lint before handing off changes.
+Run npm install, npm run dev, npm run build, npm run lint, npm test, or npm run preview as needed. Run npm run build and npm run lint before handing off changes, and npm test (all tests passing) before every push.
 
 ## Working rules
 
@@ -130,6 +131,7 @@ Do not commit secrets. Copy .env.example to .env.local and provide values locall
 - The main demo flow works without manual data repair.
 - npm run build passes.
 - npm run lint passes.
+- npm test passes with no failing or skipped tests.
 - Official and community information are visually distinct.
 - Timestamps and source attribution are present.
 - Loading, empty, error, and stale-data states are considered.
