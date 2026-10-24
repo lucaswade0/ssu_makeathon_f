@@ -227,6 +227,62 @@ export function useEvacuationZones(city: string) {
   })
 }
 
+// ---------- Earthquakes: USGS earthquake catalog ----------
+
+const USGS_QUERY_URL = 'https://earthquake.usgs.gov/fdsnws/event/1/query'
+const QUAKE_DAYS = 7
+const QUAKE_MIN_MAGNITUDE = 2.5 // smaller quakes are rarely felt
+
+const quakeResponseSchema = z.object({
+  features: z.array(z.object({
+    id: z.string(),
+    geometry: z.object({ coordinates: z.array(z.number()).min(2) }),
+    properties: z.object({
+      mag: z.number().nullable(),
+      place: z.string().nullable(),
+      time: z.number(),
+    }),
+  })),
+})
+
+export async function fetchEarthquakes(city: string): Promise<Incident[]> {
+  const { lat, lng } = cityCenter(city)
+  const query = new URLSearchParams({
+    format: 'geojson',
+    latitude: String(lat),
+    longitude: String(lng),
+    maxradiuskm: '65',
+    minmagnitude: String(QUAKE_MIN_MAGNITUDE),
+    starttime: new Date(Date.now() - QUAKE_DAYS * 86_400_000).toISOString(),
+    orderby: 'time',
+  })
+  const response = await fetch(`${USGS_QUERY_URL}?${query}`)
+  if (!response.ok) throw new Error(`Earthquake request failed (${response.status})`)
+  const data = quakeResponseSchema.parse(await response.json())
+
+  return data.features.map(({ id, geometry, properties: p }) => ({
+    id: `usgs-${id}`,
+    kind: 'earthquake' as const,
+    title: `M${p.mag?.toFixed(1) ?? '?'} earthquake`,
+    location_text: p.place ?? 'Location not listed',
+    latitude: geometry.coordinates[1]!,
+    longitude: geometry.coordinates[0]!,
+    source: 'USGS earthquake catalog',
+    // When the quake happened, so lists read "3 h ago" for the event itself.
+    updated_at: new Date(p.time).toISOString(),
+  }))
+}
+
+export function useEarthquakes(city: string) {
+  return useQuery({
+    queryKey: ['hazards', 'earthquakes', city.trim()],
+    queryFn: () => fetchEarthquakes(city),
+    refetchInterval: 5 * 60_000,
+    retry: 1,
+    enabled: hasLiveCoverage(city),
+  })
+}
+
 // ---------- Weather alerts: National Weather Service ----------
 
 const weatherResponseSchema = z.object({

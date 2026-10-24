@@ -61,6 +61,7 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 .fire { --tone: var(--fire); }
 .flood { --tone: #2563eb; }
 .heat { --tone: #f59e0b; }
+.earthquake { --tone: #7c4a1e; }
 .official { --tone: var(--official); }
 .verified { --tone: var(--verified); }
 .order { --tone: var(--order); }

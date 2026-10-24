@@ -4,15 +4,16 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useRef } from 'react'
 import { setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
-import { Droplets, Flame, Tent, ThermometerSun, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { Activity, Droplets, Flame, Tent, ThermometerSun, TriangleAlert, type LucideIcon } from 'lucide-react'
 import type { PerimeterCollection } from '../hazards/liveHazards'
 import type { Incident, MapSelection, Shelter, ZoneCollection } from '../map/sampleData'
 
 // Vite's dev bundling breaks MapLibre's default worker path, so point it at the file directly.
 setWorkerUrl(workerUrl)
 
-const icons: Record<'fire' | 'flood' | 'heat' | 'shelter' | 'alert', LucideIcon> = {
+const icons: Record<'fire' | 'flood' | 'heat' | 'earthquake' | 'shelter' | 'alert', LucideIcon> = {
   fire: Flame,
+  earthquake: Activity,
   flood: Droplets,
   heat: ThermometerSun,
   shelter: Tent,
@@ -73,7 +74,7 @@ export function ShelterMap({ shelters, incidents, zones, perimeters, center, sel
       initialViewState={{ latitude: center.lat, longitude: center.lng, zoom: 12 }}
       style={{ width: '100%', height: '100%' }}
       mapStyle="https://tiles.openfreemap.org/styles/positron"
-      attributionControl={{ compact: true, customAttribution: 'Wildfires: NIFC WFIGS · Evacuation zones: Cal OES · Sample scenario: demo data' }}
+      attributionControl={{ compact: true, customAttribution: 'Wildfires: NIFC WFIGS · Earthquakes: USGS · Evacuation zones: Cal OES · Sample scenario: demo data' }}
       interactiveLayerIds={['zone-fill']}
       onClick={e => {
         const zoneId = e.features?.[0]?.properties?.zone_id

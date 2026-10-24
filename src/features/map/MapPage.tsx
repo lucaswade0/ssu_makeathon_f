@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCommunitySession } from '../community/session'
-import { cityCenter, clockTime, hasLiveCoverage, NO_COVERAGE, noPerimeters, useEvacuationZones, useFireIncidents, useFirePerimeters, useWeatherAlerts } from '../hazards/liveHazards'
+import { cityCenter, clockTime, hasLiveCoverage, NO_COVERAGE, noPerimeters, useEarthquakes, useEvacuationZones, useFireIncidents, useFirePerimeters, useWeatherAlerts } from '../hazards/liveHazards'
 import { Icon, ShelterMap } from '../shelters/ShelterMap'
 import { useShelters } from '../shelters/useShelters'
 import { noZones, sampleIncidents, sampleShelters, sampleZones, type Incident, type MapSelection, type Shelter, type ZoneProperties } from './sampleData'
@@ -108,6 +108,7 @@ export function MapPage({ city }: { city: string }) {
   const fetchedAt = sheltersQuery.dataUpdatedAt ? clockTime(sheltersQuery.dataUpdatedAt) : null
 
   const firesQuery = useFireIncidents(city)
+  const quakesQuery = useEarthquakes(city)
   const weatherQuery = useWeatherAlerts(city)
   const zonesQuery = useEvacuationZones(city)
   const perimetersQuery = useFirePerimeters(city)
@@ -118,7 +119,7 @@ export function MapPage({ city }: { city: string }) {
   const [showSample, setShowSample] = useState(false)
   // Uncovered cities have no coordinates, so they use Santa Rosa. Sample data exists for Santa Rosa (fire) and Petaluma (flood).
   const center = cityCenter(covered ? city : 'Santa Rosa')
-  const incidents = showSample ? sampleIncidents : firesQuery.data ?? []
+  const incidents = showSample ? sampleIncidents : [...firesQuery.data ?? [], ...quakesQuery.data ?? []]
   const zoneCollection = showSample ? sampleZones : zonesQuery.data ?? noZones
   const perimeters = showSample ? noPerimeters : perimetersQuery.data ?? noPerimeters
   // Multi-part zones arrive as several features; list each zone once.
@@ -186,13 +187,14 @@ export function MapPage({ city }: { city: string }) {
 
         <section className="map-card">
           {tab === 'incidents' && <>
-            <h2>{showSample ? 'Sample incidents' : `Active wildfires near ${city}`}</h2>
+            <h2>{showSample ? 'Sample incidents' : `Incidents near ${city}`}</h2>
             {!showSample && !covered && <p className="muted">{NO_COVERAGE}</p>}
             {!showSample && covered && <>
-              {firesQuery.isPending && <p className="muted">Loading wildfire data…</p>}
-              {firesQuery.isError && <p role="alert" className="error">Couldn't reach the live wildfire feed. Turn on the sample scenario to see example data.</p>}
-              {firesQuery.isSuccess && incidents.length === 0 && (
-                <p className="muted">No active wildfires reported within about 65 km. This does not confirm that the area is safe.</p>
+              {(firesQuery.isPending || quakesQuery.isPending) && <p className="muted">Loading wildfire and earthquake data…</p>}
+              {firesQuery.isError && <p role="alert" className="error">Couldn't reach the live wildfire feed.</p>}
+              {quakesQuery.isError && <p role="alert" className="error">Couldn't reach the USGS earthquake feed.</p>}
+              {firesQuery.isSuccess && quakesQuery.isSuccess && incidents.length === 0 && (
+                <p className="muted">No active wildfires or M2.5+ earthquakes in the past week within about 65 km. This does not confirm that the area is safe.</p>
               )}
             </>}
             <ul className="map-list">
@@ -205,7 +207,7 @@ export function MapPage({ city }: { city: string }) {
             <p className="muted map-source">
               {showSample
                 ? 'Sample scenario data. Not real events.'
-                : firesQuery.isSuccess ? `Source: NIFC WFIGS · Fetched ${clockTime(firesQuery.dataUpdatedAt)}` : 'Source: NIFC WFIGS'}
+                : `Sources: NIFC WFIGS (wildfires), USGS (earthquakes, M2.5+ past 7 days)${firesQuery.isSuccess ? ` · Fetched ${clockTime(firesQuery.dataUpdatedAt)}` : ''}`}
             </p>
           </>}
 
