@@ -7,6 +7,7 @@ import { useCommunitySession } from './features/community/session'
 import type { CommunityPost, CommunityReply } from './features/community/schemas'
 import { hasLiveCoverage, NO_COVERAGE, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
 import { MapPage } from './features/map/MapPage'
+import { NewsPage } from './features/news/NewsPage'
 import { AppShell, ComingSoon, type Page } from './layout/AppShell'
 import './App.css'
 
@@ -302,7 +303,7 @@ function App() {
       <Feed key={`${city}-${sample}`} city={city} sample={sample} onOpenMap={() => setPage('map')} onToggleSample={() => setSample(!sample)} onSignIn={openSignIn} />
     </section>}
     {page === 'map' && <MapPage city={city} />}
-    {page === 'news' && <ComingSoon title="News" text="Local news and public data summaries will appear here." />}
+    {page === 'news' && <NewsPage city={city} />}
     {page === 'resources' && <ComingSoon title={`Resources in ${city}`} text="Shelters and supplies, labeled by who confirmed them. Coming in the next update." />}
     {page === 'sam' && <ComingSoon title="Meet SAM" text="SAM will answer general preparedness questions and point you to official instructions. Coming soon." />}
     {page === 'signin' && <SignInPage onBack={() => setPage('feed')} />}
