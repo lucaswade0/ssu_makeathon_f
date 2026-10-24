@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchEarthquakes, fetchEvacuationZones, hasLiveCoverage, nearestCoveredCity } from './liveHazards'
+import { fetchEarthquakes, fetchEvacuationZones, fetchShakeMaps, hasLiveCoverage, nearestCoveredCity } from './liveHazards'
 
 describe('nearestCoveredCity', () => {
   it('picks the closest covered city, not just any within 30 km', () => {
@@ -96,5 +96,22 @@ describe('fetchEarthquakes', () => {
     const url = new URL(fetchSpy.mock.calls[0]![0])
     expect(url.searchParams.get('minmagnitude')).toBe('2.5')
     expect(url.searchParams.get('maxradiuskm')).toBe('65')
+  })
+})
+
+describe('fetchShakeMaps', () => {
+  it('follows quake → detail → contours and keeps whole intensities from 2 up', async () => {
+    const line = { type: 'MultiLineString', coordinates: [[[-122.8, 38.8], [-122.7, 38.9]]] }
+    const responses: Record<string, unknown> = {
+      list: { features: [{ properties: { detail: 'https://usgs.test/detail' } }] },
+      'https://usgs.test/detail': { properties: { products: { shakemap: [{ contents: { 'download/cont_mmi.json': { url: 'https://usgs.test/cont' } } }] } } },
+      'https://usgs.test/cont': { features: [1, 2, 2.5, 3].map(value => ({ geometry: line, properties: { value } })) },
+    }
+    const fetchSpy = vi.fn(async (url: string) => new Response(JSON.stringify(responses[url] ?? responses.list)))
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const rings = await fetchShakeMaps('Santa Rosa')
+    expect(rings.features.map(f => f.properties.mmi)).toEqual([2, 3])
+    expect(new URL(fetchSpy.mock.calls[0]![0]).searchParams.get('producttype')).toBe('shakemap')
   })
 })
