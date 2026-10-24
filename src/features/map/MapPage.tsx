@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useSimulation } from '../simulation/context'
+import { SIM_CITY } from '../simulation/scenario'
 import { useCommunitySession } from '../community/session'
 import { cityCenter, clockTime, hasLiveCoverage, NO_COVERAGE, noPerimeters, useEarthquakes, useEvacuationZones, useFireIncidents, useFirePerimeters, useShakeMaps, useWeatherAlerts } from '../hazards/liveHazards'
 import { Icon, ShelterMap } from '../shelters/ShelterMap'
 import { useShelters } from '../shelters/useShelters'
 import { allShown, hazardFilters, weatherAlertShown, zoneShown, type HazardFilter, type ShownHazards } from './hazardFilters'
-import { noShakeMaps, noZones, sampleIncidents, sampleShakeMaps, sampleShelters, sampleZones, type Incident, type MapSelection, type Shelter, type ZoneProperties } from './sampleData'
+import { noShakeMaps, noZones, sampleShelters, type Incident, type MapSelection, type Shelter, type ZoneProperties } from './sampleData'
 
 type MapTab = 'incidents' | 'shelters' | 'alerts'
 
@@ -105,7 +107,6 @@ export function MapPage({ city }: { city: string }) {
   const sheltersQuery = useShelters(city)
 
   // Without Supabase settings, fall back to sample data so the demo still works offline.
-  const shelters = configured ? sheltersQuery.data ?? [] : sampleShelters
   const fetchedAt = sheltersQuery.dataUpdatedAt ? clockTime(sheltersQuery.dataUpdatedAt) : null
 
   const firesQuery = useFireIncidents(city)
@@ -118,17 +119,20 @@ export function MapPage({ city }: { city: string }) {
 
   // Live mode shows only real data. The sample scenario swaps in demo incidents and zones together,
   // so a sample evacuation zone is never drawn without the sample fire that explains it.
-  const [showSample, setShowSample] = useState(false)
+  const sim = useSimulation()
+  const showSample = sim.active
+  const liveShelters = configured && !showSample
+  const shelters = showSample ? sim.state?.shelters ?? [] : configured ? sheltersQuery.data ?? [] : sampleShelters
   // Uncovered cities have no coordinates, so they use Santa Rosa. Sample data exists for Santa Rosa (fire) and Petaluma (flood).
-  const center = cityCenter(covered ? city : 'Santa Rosa')
+  const center = cityCenter(showSample ? SIM_CITY : covered ? city : 'Santa Rosa')
   const [shown, setShown] = useState<ShownHazards>(allShown)
   const hiddenLabels = hazardFilters.filter(f => !shown[f.id]).map(f => f.label)
-  const allIncidents = showSample ? sampleIncidents : [...firesQuery.data ?? [], ...quakesQuery.data ?? []]
+  const allIncidents = showSample ? sim.state?.incidents ?? [] : [...firesQuery.data ?? [], ...quakesQuery.data ?? []]
   const incidents = allIncidents.filter(i => shown[i.kind])
-  const allZones = showSample ? sampleZones : zonesQuery.data ?? noZones
+  const allZones = showSample ? sim.state?.zones ?? noZones : zonesQuery.data ?? noZones
   const zoneCollection = { ...allZones, features: allZones.features.filter(f => zoneShown(f.properties.hazard, shown)) }
   const perimeters = !shown.fire || showSample ? noPerimeters : perimetersQuery.data ?? noPerimeters
-  const shakeMaps = !shown.earthquake ? noShakeMaps : showSample ? sampleShakeMaps : shakeMapsQuery.data ?? noShakeMaps
+  const shakeMaps = !shown.earthquake || showSample ? noShakeMaps : shakeMapsQuery.data ?? noShakeMaps
   const weatherAlerts = weatherQuery.data?.filter(a => weatherAlertShown(a.event, shown))
   // Multi-part zones arrive as several features; list each zone once.
   const zones = [...new Map(zoneCollection.features.map(f => [f.properties.zone_id, f.properties])).values()]
@@ -136,11 +140,6 @@ export function MapPage({ city }: { city: string }) {
   function select(next: MapSelection) {
     setSelection(next)
     setTab(tabFor[next.type])
-  }
-
-  function toggleSample() {
-    setShowSample(!showSample)
-    setSelection(null)
   }
 
   function toggleHazard(id: HazardFilter) {
@@ -154,7 +153,7 @@ export function MapPage({ city }: { city: string }) {
     <div className="map-page">
       <section className="map-area" aria-label="Map">
         <ShelterMap shelters={shelters} incidents={incidents} zones={zoneCollection} perimeters={perimeters} shakeMaps={shakeMaps} center={center} selection={selection} onSelect={select} />
-        {showSample && <p className="sample-banner" role="status">Sample scenario: these incidents and evacuation zones are not real events.</p>}
+        {showSample && <p className="sample-banner" role="status">Simulation: these incidents and evacuation zones are sample data, not real events.</p>}
         <details className="map-legend" open>
           <summary>Legend</summary>
           <span><i className="swatch order" />Evacuation order</span>
@@ -170,14 +169,6 @@ export function MapPage({ city }: { city: string }) {
       </section>
 
       <aside className="map-panel" aria-label="Map details">
-        <button type="button" className={`scenario-toggle${showSample ? ' on' : ''}`} aria-pressed={showSample} onClick={toggleSample}>
-          <span className="scenario-switch" aria-hidden="true" />
-          <span>
-            <strong>Sample scenario {showSample ? 'on' : 'off'}</strong>
-            <small>{showSample ? 'Showing demo incidents and evacuation zones' : 'Showing live data only'}</small>
-          </span>
-        </button>
-
         <fieldset className="hazard-filters">
           <legend>Show on map</legend>
           {hazardFilters.map(f => (
@@ -213,7 +204,7 @@ export function MapPage({ city }: { city: string }) {
 
         <section className="map-card">
           {tab === 'incidents' && <>
-            <h2>{showSample ? 'Sample incidents' : `Incidents near ${city}`}</h2>
+            <h2>{showSample ? 'Simulated incidents' : `Incidents near ${city}`}</h2>
             {!showSample && !covered && <p className="muted">{NO_COVERAGE}</p>}
             {!showSample && covered && <>
               {(firesQuery.isPending || quakesQuery.isPending) && <p className="muted">Loading wildfire and earthquake data…</p>}
@@ -233,22 +224,22 @@ export function MapPage({ city }: { city: string }) {
             </ul>
             <p className="muted map-source">
               {showSample
-                ? 'Sample scenario data. Not real events.'
+                ? 'Simulation data. Not real events.'
                 : `Sources: NIFC WFIGS (wildfires), USGS (earthquakes, M2.5+ past 7 days)${firesQuery.isSuccess ? ` · Fetched ${clockTime(firesQuery.dataUpdatedAt)}` : ''}`}
             </p>
           </>}
 
           {tab === 'shelters' && <>
-            <h2>Shelters near {city}</h2>
-            {configured && sheltersQuery.isPending && <p className="muted">Loading shelters…</p>}
-            {configured && sheltersQuery.isError && (
+            <h2>{showSample ? 'Simulated shelters' : `Shelters near ${city}`}</h2>
+            {liveShelters && sheltersQuery.isPending && <p className="muted">Loading shelters…</p>}
+            {liveShelters && sheltersQuery.isError && (
               <div role="alert">
                 <p>Couldn't load shelters. Check your connection and try again.</p>
                 <button type="button" onClick={() => void sheltersQuery.refetch()}>Try again</button>
               </div>
             )}
-            {!(configured && (sheltersQuery.isPending || sheltersQuery.isError)) && shelters.length === 0 && (
-              <p className="muted">No shelters listed for {city} yet.</p>
+            {!(liveShelters && (sheltersQuery.isPending || sheltersQuery.isError)) && shelters.length === 0 && (
+              <p className="muted">{showSample ? 'No shelters have opened yet in this simulation step.' : `No shelters listed for ${city} yet.`}</p>
             )}
             <ul className="map-list">
               {shelters.map(s => (
@@ -258,7 +249,9 @@ export function MapPage({ city }: { city: string }) {
               ))}
             </ul>
             <p className="muted map-source">
-              {configured
+              {showSample
+                ? 'Simulation data. Not real shelters.'
+                : configured
                 ? `Source: Safety SAM shelter list${fetchedAt ? ` · Fetched ${fetchedAt}` : ''}`
                 : 'Sample shelters. Connect Supabase to load live data.'}
             </p>
@@ -283,7 +276,7 @@ export function MapPage({ city }: { city: string }) {
             </ul>
             {weatherQuery.isSuccess && <p className="muted map-source">Source: National Weather Service · Fetched {clockTime(weatherQuery.dataUpdatedAt)}</p>}
 
-            <h2 className="section-gap">{showSample ? 'Sample evacuation zones' : 'Evacuation zones'}</h2>
+            <h2 className="section-gap">{showSample ? 'Simulated evacuation zones' : 'Evacuation zones'}</h2>
             {!showSample && !covered && <p className="muted">{NO_COVERAGE}</p>}
             {!showSample && covered && <>
               {zonesQuery.isPending && <p className="muted">Loading Cal OES evacuation zones…</p>}
@@ -302,7 +295,7 @@ export function MapPage({ city }: { city: string }) {
             </ul>
             <p className="muted map-source">
               {showSample
-                ? 'Sample scenario data. Not real events.'
+                ? 'Simulation data. Not real events.'
                 : `Source: Cal OES California Active Evacuation Zones${zonesQuery.isSuccess ? ` · Fetched ${clockTime(zonesQuery.dataUpdatedAt)}` : ''}`}
             </p>
           </>}

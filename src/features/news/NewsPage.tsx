@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { clockTime, hasLiveCoverage, NO_COVERAGE, useEarthquakes, useEvacuationZones, useFireIncidents, useWeatherAlerts } from '../hazards/liveHazards'
-import { sampleIncidents, sampleZones } from '../map/sampleData'
-import { filterNews, hazardLabels, incidentItems, isExpired, sampleEarthquake, sortNews, weatherItems, zoneItems, type NewsHazard, type NewsItem } from './newsItems'
+import { useSimulation } from '../simulation/context'
+import { filterNews, hazardLabels, incidentItems, isExpired, sortNews, weatherItems, zoneItems, type NewsHazard, type NewsItem } from './newsItems'
 
 const sources = [
   'National Weather Service (weather alerts)',
@@ -34,7 +34,8 @@ function NewsCard({ item, expired }: { item: NewsItem; expired: boolean }) {
 }
 
 export function NewsPage({ city }: { city: string }) {
-  const [showSample, setShowSample] = useState(false)
+  const sim = useSimulation()
+  const showSample = sim.active
   const [filter, setFilter] = useState<'all' | NewsHazard>('all')
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -55,9 +56,8 @@ export function NewsPage({ city }: { city: string }) {
   ]
 
   const zoneProperties = [...new Map((zones.data?.features ?? []).map(f => [f.properties.zone_id, f.properties])).values()]
-  const sampleZoneProperties = [...new Map(sampleZones.features.map(f => [f.properties.zone_id, f.properties])).values()]
   const all = showSample
-    ? incidentItems([...sampleIncidents, sampleEarthquake], true).concat(zoneItems(sampleZoneProperties, true))
+    ? sim.state?.news ?? []
     : [
       ...weatherItems(weather.data ?? []),
       ...incidentItems([...(fires.data ?? []), ...(quakes.data ?? [])], false),
@@ -77,13 +77,6 @@ export function NewsPage({ city }: { city: string }) {
     </div>
 
     <div className="news-controls">
-      <button type="button" className={`scenario-toggle${showSample ? ' on' : ''}`} aria-pressed={showSample} onClick={() => setShowSample(!showSample)}>
-        <span className="scenario-switch" aria-hidden="true" />
-        <span>
-          <strong>Sample scenario {showSample ? 'on' : 'off'}</strong>
-          <small>{showSample ? 'Showing demo updates, not real events' : 'Showing live public data'}</small>
-        </span>
-      </button>
       <label className="news-filter">Show
         <select value={filter} onChange={e => setFilter(e.target.value as typeof filter)}>
           <option value="all">All updates</option>
@@ -92,10 +85,10 @@ export function NewsPage({ city }: { city: string }) {
       </label>
     </div>
 
-    {showSample && <p className="notice" role="status">Sample scenario: these updates are not real events.</p>}
+    {showSample && <p className="notice" role="status">Simulation running: these updates are sample data, not real events.</p>}
     {!showSample && !covered && <p className="notice" role="status">{NO_COVERAGE}</p>}
     {loading && <p role="status">Checking public sources…</p>}
-    {failed.length > 0 && <p role="alert" className="error">Couldn’t reach {failed.join(', ')}. Showing updates from the other sources. Turn on the sample scenario to see example data.</p>}
+    {failed.length > 0 && <p role="alert" className="error">Couldn’t reach {failed.join(', ')}. Showing updates from the other sources. Run the disaster simulation to see example data.</p>}
 
     {items.length > 0
       ? <div className="news-list">{items.map(item => <NewsCard key={item.id} item={item} expired={isExpired(item, now)} />)}</div>

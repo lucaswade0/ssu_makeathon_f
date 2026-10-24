@@ -8,6 +8,7 @@ import type { CommunityPost, CommunityReply, PostType } from './features/communi
 import { hasLiveCoverage, NO_COVERAGE, useEarthquakes, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
 import { MapPage } from './features/map/MapPage'
 import { NewsPage } from './features/news/NewsPage'
+import { useSimulation } from './features/simulation/context'
 import { AppShell, ComingSoon, type Page } from './layout/AppShell'
 import './App.css'
 
@@ -221,19 +222,9 @@ function PostCard({ post, sample = false, onSignIn }: { post: CommunityPost; sam
   </article>
 }
 
-const samplePosts: CommunityPost[] = [{
-  id: '00000000-0000-4000-8000-000000000001', author_id: '00000000-0000-4000-8000-000000000002',
-  city: 'Santa Rosa', post_type: 'question', body: 'What do you keep in your emergency supply kit? I’m putting together a checklist for my household.',
-  photo_paths: [], created_at: '2026-10-24T04:30:00Z', updated_at: '2026-10-24T04:30:00Z',
-  author: { id: '00000000-0000-4000-8000-000000000002', display_name: 'Sample resident' },
-}, {
-  id: '00000000-0000-4000-8000-000000000003', author_id: '00000000-0000-4000-8000-000000000002',
-  city: 'Santa Rosa', post_type: 'general', body: 'A reminder to review your household contact list and talk through a meeting place before an emergency.',
-  photo_paths: [], created_at: '2026-10-24T04:00:00Z', updated_at: '2026-10-24T04:00:00Z',
-  author: { id: '00000000-0000-4000-8000-000000000002', display_name: 'Sample resident' },
-}]
-
-function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: string; sample: boolean; onOpenMap: () => void; onToggleSample: () => void; onSignIn: () => void }) {
+function Feed({ city, onOpenMap, onSignIn }: { city: string; onOpenMap: () => void; onSignIn: () => void }) {
+  const sim = useSimulation()
+  const sample = sim.active
   const { session, configured } = useCommunitySession()
   const [typeFilter, setTypeFilter] = useState<'all' | PostType>('all')
   const feed = useCommunityFeed(sample ? '' : city, typeFilter === 'all' ? undefined : typeFilter)
@@ -241,7 +232,7 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
   const fires = useFireIncidents(city)
   const quakes = useEarthquakes(city)
   const weather = useWeatherAlerts(city)
-  const posts = sample ? samplePosts.filter(post => typeFilter === 'all' || post.post_type === typeFilter) : feed.data?.pages.flatMap(page => page.posts) || []
+  const posts = sample ? (sim.state?.posts ?? []).filter(post => typeFilter === 'all' || post.post_type === typeFilter) : feed.data?.pages.flatMap(page => page.posts) || []
   const [refreshing, setRefreshing] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -252,19 +243,44 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
     setRefreshing(true)
     try { await Promise.all([feed.refetch(), alert.refetch()]) } finally { setRefreshing(false) }
   }
-  const official = alert.data
+  const official = sample ? sim.state?.alert ?? null : alert.data
   const sourceUrl = official?.source_url && /^https?:\/\//i.test(official.source_url) ? official.source_url : null
   const expired = official?.expires_at && Date.parse(official.expires_at) <= now
   return <>
-    <div className="row feed-heading"><h2>{sample ? 'Sample feed' : `${city} feed`}</h2>
+    <div className="row feed-heading"><h2>{sample ? 'Simulated feed' : `${city} feed`}</h2>
       <div className="row">
         {!sample && configured && !session && <button type="button" className="new-post-button" onClick={onSignIn}><SquarePen size={16} aria-hidden="true" />New post</button>}
         {!sample && <button disabled={!configured || refreshing || feed.isFetching} onClick={() => void refresh()}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>}
-        <button type="button" onClick={onToggleSample}>{sample ? 'Back to live feed' : 'View sample feed'}</button>
       </div>
     </div>
-    {sample ? <p role="status" className="notice">Sample data only. Posting and replies are available in the live feed.</p> : <>
-      {!configured && <p role="status" className="notice">The live feed isn’t configured. Add your Supabase settings or view the sample feed.</p>}
+    {sample && <>
+      <p role="status" className="notice">Simulation running: these alerts and posts are sample data, not real events. Posting is turned off.</p>
+      <section className="official-card" aria-label="Latest official alert">
+        <div>
+          <div className="official-tags">
+            <span className="official-badge"><BadgeCheck size={14} aria-hidden="true" />OFFICIAL</span>
+            <span className="pinned"><Pin size={13} aria-hidden="true" />Pinned · Latest alert</span>
+            <span className="badge community">Sample data</span>
+          </div>
+          {official ? <>
+            <h2>{official.title}</h2>
+            <p className="body-text">{official.instructions}</p>
+          </> : <p>No official alert has been issued yet in this simulation.</p>}
+        </div>
+        {official && <div className="official-meta">
+          <div>Issued <Timestamp value={official.issued_at} /></div>
+          <div>Source: {official.source_name}</div>
+        </div>}
+      </section>
+      <div className="incident-strip">
+        <span className="live-dot" aria-hidden="true" />
+        <strong>{sim.state?.incidents.length ?? 0} active {(sim.state?.incidents.length ?? 0) === 1 ? 'wildfire' : 'wildfires'} · {sim.state?.zones.features.length ?? 0} evacuation {(sim.state?.zones.features.length ?? 0) === 1 ? 'zone' : 'zones'} in the simulation</strong>
+        <button type="button" onClick={onOpenMap}>View map</button>
+        <span className="muted">Sample data</span>
+      </div>
+    </>}
+    {!sample && <>
+      {!configured && <p role="status" className="notice">The live feed isn’t configured. Add your Supabase settings, or run the disaster simulation.</p>}
       {configured && <section className={`official-card${expired ? ' expired' : ''}`} aria-label="Latest official alert">
         <div>
           <div className="official-tags">
@@ -305,7 +321,7 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
     {(sample || configured) && <div className="post-filter" role="radiogroup" aria-label="Filter posts by type">
       {postFilters.map(({ id, label }) => <button key={id} type="button" role="radio" aria-checked={typeFilter === id} className="type-chip" onClick={() => setTypeFilter(id)}>{label}</button>)}
     </div>}
-    {sample && !posts.length && <p className="muted">No sample {typeFilter} posts.</p>}
+    {sample && !posts.length && <p className="muted">No {typeFilter === 'all' ? '' : `${typeFilter} `}posts yet in this simulation step.</p>}
     <div className="posts">{posts.map(post => <PostCard key={post.id} post={post} sample={sample} onSignIn={onSignIn} />)}</div>
     {!sample && feed.hasNextPage && <button disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>{feed.isFetchingNextPage ? 'Loading…' : 'Load older posts'}</button>}
     {!sample && feed.dataUpdatedAt > 0 && <p className="muted">Last checked <Timestamp value={new Date(feed.dataUpdatedAt).toISOString()} /> · Updates every 30 seconds.</p>}
@@ -315,7 +331,6 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
 function App() {
   const [page, setPage] = useState<Page>('feed')
   const [city, setCity] = useState('Santa Rosa')
-  const [sample, setSample] = useState(false)
 
   function openSignIn() {
     setPage('signin')
@@ -324,7 +339,7 @@ function App() {
 
   return <AppShell page={page} onNavigate={setPage} city={city} onCityChange={setCity}>
     {page === 'feed' && <section className="feed" aria-label="Community feed">
-      <Feed key={`${city}-${sample}`} city={city} sample={sample} onOpenMap={() => setPage('map')} onToggleSample={() => setSample(!sample)} onSignIn={openSignIn} />
+      <Feed key={city} city={city} onOpenMap={() => setPage('map')} onSignIn={openSignIn} />
     </section>}
     {page === 'map' && <MapPage city={city} />}
     {page === 'news' && <NewsPage city={city} />}
