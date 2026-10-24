@@ -145,6 +145,7 @@ export function MapPage({ city }: { city: string }) {
           <summary>Legend</summary>
           <span><i className="swatch order" />Evacuation order</span>
           <span><i className="swatch warning" />Evacuation warning</span>
+          <span><i className="swatch zone-fire" /><i className="swatch zone-flood" /><i className="swatch zone-quake" />Fire · Flood · Earthquake</span>
           <span><i className="swatch incident" />Incident</span>
           <span><i className="swatch perimeter" />Fire perimeter</span>
           <span><i className="swatch official" />Official shelter</span>

@@ -17,11 +17,11 @@ describe('nearestCoveredCity', () => {
 
 const square = [[[-122.7, 38.4], [-122.6, 38.4], [-122.6, 38.5], [-122.7, 38.4]]]
 
-function zone(id: string, status: string, geometry: unknown, editDate: number | null = 1_700_000_000_000) {
+function zone(id: string, status: string, geometry: unknown, editDate: number | null = 1_700_000_000_000, eventType?: string) {
   return {
     type: 'Feature',
     geometry,
-    properties: { ZONE_ID: id, ZONE_NAME: null, STATUS: status, COUNTY: 'SONOMA', EDIT_DATE: editDate, PUBLIC_INFO: null },
+    properties: { ZONE_ID: id, ZONE_NAME: null, STATUS: status, COUNTY: 'SONOMA', EDIT_DATE: editDate, PUBLIC_INFO: null, EVENT_TYPE: eventType },
   }
 }
 
@@ -50,6 +50,18 @@ describe('fetchEvacuationZones', () => {
     ])
     expect(result.features[0]?.properties.source).toBe('Cal OES (Sonoma County)')
     expect(result.features[1]?.properties.issued_at).toBeNull()
+    expect(result.features[0]?.properties.hazard).toBe('other') // Cal OES left EVENT_TYPE out
+  })
+
+  it('reads the hazard type for zone colors', async () => {
+    const typed = (eventType: string) => zone(eventType, 'Evacuation Order', { type: 'Polygon', coordinates: square }, null, eventType)
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      type: 'FeatureCollection',
+      features: [typed('Flood'), typed('Earthquake'), typed('Wildfire'), typed('Hazmat')],
+    }))))
+
+    const result = await fetchEvacuationZones('Santa Rosa')
+    expect(result.features.map(f => f.properties.hazard)).toEqual(['flood', 'earthquake', 'fire', 'other'])
   })
 
   it('never searches a city without coordinates', async () => {

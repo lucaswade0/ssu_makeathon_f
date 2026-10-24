@@ -79,8 +79,13 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 .map-legend summary { font-weight: 700; cursor: pointer; }
 .map-legend span { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .swatch { display: inline-block; width: 16px; height: 14px; border-radius: 4px; }
-.swatch.order { background: rgba(180, 35, 24, .3); border: 2px solid var(--order); border-radius: 2px; }
-.swatch.warning { background: rgba(217, 119, 6, .2); border: 2px dashed #b45309; border-radius: 2px; }
+/* Zones: line style shows urgency, color shows the hazard (matches the map layers in ShelterMap). */
+.swatch.order { background: rgba(29, 33, 37, .3); border: 2px solid var(--text); border-radius: 2px; }
+.swatch.warning { background: rgba(29, 33, 37, .1); border: 2px dashed var(--text); border-radius: 2px; }
+.swatch.zone-fire, .swatch.zone-flood, .swatch.zone-quake { width: 12px; height: 12px; margin-right: -4px; border-radius: 50%; }
+.swatch.zone-fire { background: #c2410c; }
+.swatch.zone-flood { background: #1d4ed8; }
+.swatch.zone-quake { background: #7c4a1e; }
 .swatch.incident { height: 16px; border-radius: 50%; background: var(--fire); }
 .swatch.perimeter { background: rgba(194, 65, 12, .15); border: 1.5px solid var(--fire); border-radius: 2px; }
 .swatch.official { background: var(--official); }
