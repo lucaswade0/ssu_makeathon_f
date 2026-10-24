@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useCommunitySession } from '../community/session'
-import { useFireIncidents, useWeatherAlerts, clockTime } from '../hazards/liveHazards'
+import { clockTime, hasLiveCoverage, NO_COVERAGE, noPerimeters, useEvacuationZones, useFireIncidents, useFirePerimeters, useWeatherAlerts } from '../hazards/liveHazards'
 import { Icon, ShelterMap } from '../shelters/ShelterMap'
 import { useShelters } from '../shelters/useShelters'
-import { sampleIncidents, sampleShelters, sampleZones, type Incident, type MapSelection, type Shelter } from './sampleData'
+import { noZones, sampleIncidents, sampleShelters, sampleZones, type Incident, type MapSelection, type Shelter, type ZoneProperties } from './sampleData'
 
 type MapTab = 'incidents' | 'shelters' | 'alerts'
 
@@ -21,13 +21,12 @@ const statusLabel = {
   community_submitted: 'Community-submitted · unverified',
 }
 
-const zones = sampleZones.features.map(f => f.properties)
-
 function timeAgo(iso: string) {
   const minutes = Math.round((Date.now() - Date.parse(iso)) / 60_000)
   if (minutes < 1) return 'just now'
   if (minutes < 60) return `${minutes} min ago`
-  return `${Math.round(minutes / 60)} h ago`
+  if (minutes < 48 * 60) return `${Math.round(minutes / 60)} h ago`
+  return `${Math.round(minutes / 1440)} days ago`
 }
 
 type RowProps = {
@@ -50,7 +49,7 @@ function Row({ icon, tone, title, meta, active, onClick }: RowProps) {
   )
 }
 
-function Detail({ selection, shelters, incidents }: { selection: MapSelection; shelters: Shelter[]; incidents: Incident[] }) {
+function Detail({ selection, shelters, incidents, zones }: { selection: MapSelection; shelters: Shelter[]; incidents: Incident[]; zones: ZoneProperties[] }) {
   if (selection.type === 'incident') {
     const i = incidents.find(x => x.id === selection.id)
     if (!i) return null
@@ -92,7 +91,7 @@ function Detail({ selection, shelters, incidents }: { selection: MapSelection; s
     <div className={`zone-box ${z.level}`}>
       <span className="zone-badge">{z.level === 'order' ? 'EVACUATION ORDER' : 'EVACUATION WARNING'}</span>
       <p>{z.instructions}</p>
-      <small>Zone {z.zone_id} · Source: {z.source} · Issued {timeAgo(z.issued_at)}</small>
+      <small>Zone {z.zone_id} · Source: {z.source} · {z.issued_at ? `Updated ${timeAgo(z.issued_at)}` : 'Update time not reported'}</small>
     </div>
     <p className="muted">Follow instructions from local officials. In an emergency, call 911.</p>
   </>
@@ -110,12 +109,27 @@ export function MapPage({ city }: { city: string }) {
 
   const firesQuery = useFireIncidents(city)
   const weatherQuery = useWeatherAlerts(city)
-  // Live fires when the feed works. Sample incidents only if it fails, and the panel says so.
-  const incidents = firesQuery.isError ? sampleIncidents : firesQuery.data ?? []
+  const zonesQuery = useEvacuationZones(city)
+  const perimetersQuery = useFirePerimeters(city)
+  const covered = hasLiveCoverage(city)
+
+  // Live mode shows only real data. The sample scenario swaps in demo incidents and zones together,
+  // so a sample evacuation zone is never drawn without the sample fire that explains it.
+  const [showSample, setShowSample] = useState(false)
+  const incidents = showSample ? sampleIncidents : firesQuery.data ?? []
+  const zoneCollection = showSample ? sampleZones : zonesQuery.data ?? noZones
+  const perimeters = showSample ? noPerimeters : perimetersQuery.data ?? noPerimeters
+  // Multi-part zones arrive as several features; list each zone once.
+  const zones = [...new Map(zoneCollection.features.map(f => [f.properties.zone_id, f.properties])).values()]
 
   function select(next: MapSelection) {
     setSelection(next)
     setTab(tabFor[next.type])
+  }
+
+  function toggleSample() {
+    setShowSample(!showSample)
+    setSelection(null)
   }
 
   const isActive = (type: MapSelection['type'], id: string) => selection?.type === type && selection.id === id
@@ -123,12 +137,14 @@ export function MapPage({ city }: { city: string }) {
   return (
     <div className="map-page">
       <section className="map-area" aria-label="Map">
-        <ShelterMap shelters={shelters} incidents={incidents} selection={selection} onSelect={select} />
+        <ShelterMap shelters={shelters} incidents={incidents} zones={zoneCollection} perimeters={perimeters} selection={selection} onSelect={select} />
+        {showSample && <p className="sample-banner" role="status">Sample scenario: these incidents and evacuation zones are not real events.</p>}
         <details className="map-legend" open>
           <summary>Legend</summary>
           <span><i className="swatch order" />Evacuation order</span>
           <span><i className="swatch warning" />Evacuation warning</span>
           <span><i className="swatch incident" />Incident</span>
+          <span><i className="swatch perimeter" />Fire perimeter</span>
           <span><i className="swatch official" />Official shelter</span>
           <span><i className="swatch verified" />Verified shelter</span>
           <span><i className="swatch community" />Community-submitted</span>
@@ -136,6 +152,14 @@ export function MapPage({ city }: { city: string }) {
       </section>
 
       <aside className="map-panel" aria-label="Map details">
+        <button type="button" className={`scenario-toggle${showSample ? ' on' : ''}`} aria-pressed={showSample} onClick={toggleSample}>
+          <span className="scenario-switch" aria-hidden="true" />
+          <span>
+            <strong>Sample scenario {showSample ? 'on' : 'off'}</strong>
+            <small>{showSample ? 'Showing demo incidents and evacuation zones' : 'Showing live data only'}</small>
+          </span>
+        </button>
+
         <div className="map-tabs" role="tablist" aria-label="Map lists">
           {tabs.map(t => (
             <button
@@ -153,18 +177,21 @@ export function MapPage({ city }: { city: string }) {
         {selection && (
           <section className="map-card">
             <button type="button" className="back-link" onClick={() => setSelection(null)}>← Back to list</button>
-            <Detail selection={selection} shelters={shelters} incidents={incidents} />
+            <Detail selection={selection} shelters={shelters} incidents={incidents} zones={zones} />
           </section>
         )}
 
         <section className="map-card">
           {tab === 'incidents' && <>
-            <h2>Active wildfires near {city}</h2>
-            {firesQuery.isPending && <p className="muted">Loading wildfire data…</p>}
-            {firesQuery.isError && <p role="alert" className="error">Couldn't reach the live wildfire feed. Showing sample incidents instead.</p>}
-            {firesQuery.isSuccess && incidents.length === 0 && (
-              <p className="muted">No active wildfires reported within about 65 km. This does not confirm that the area is safe.</p>
-            )}
+            <h2>{showSample ? 'Sample incidents' : `Active wildfires near ${city}`}</h2>
+            {!showSample && !covered && <p className="muted">{NO_COVERAGE}</p>}
+            {!showSample && covered && <>
+              {firesQuery.isPending && <p className="muted">Loading wildfire data…</p>}
+              {firesQuery.isError && <p role="alert" className="error">Couldn't reach the live wildfire feed. Turn on the sample scenario to see example data.</p>}
+              {firesQuery.isSuccess && incidents.length === 0 && (
+                <p className="muted">No active wildfires reported within about 65 km. This does not confirm that the area is safe.</p>
+              )}
+            </>}
             <ul className="map-list">
               {incidents.map(i => (
                 <Row key={i.id} icon={i.kind} tone={i.kind} title={i.title}
@@ -173,9 +200,9 @@ export function MapPage({ city }: { city: string }) {
               ))}
             </ul>
             <p className="muted map-source">
-              {firesQuery.isSuccess
-                ? `Source: NIFC WFIGS · Fetched ${clockTime(firesQuery.dataUpdatedAt)}`
-                : 'Sample public data. Not an official emergency service.'}
+              {showSample
+                ? 'Sample scenario data. Not real events.'
+                : firesQuery.isSuccess ? `Source: NIFC WFIGS · Fetched ${clockTime(firesQuery.dataUpdatedAt)}` : 'Source: NIFC WFIGS'}
             </p>
           </>}
 
@@ -207,9 +234,11 @@ export function MapPage({ city }: { city: string }) {
 
           {tab === 'alerts' && <>
             <h2>Weather alerts</h2>
-            {weatherQuery.isPending && <p className="muted">Loading National Weather Service alerts…</p>}
-            {weatherQuery.isError && <p role="alert" className="error">Couldn't reach the National Weather Service. Check weather.gov for current alerts.</p>}
-            {weatherQuery.isSuccess && weatherQuery.data.length === 0 && <p className="muted">No active weather alerts for {city}.</p>}
+            {covered ? <>
+              {weatherQuery.isPending && <p className="muted">Loading National Weather Service alerts…</p>}
+              {weatherQuery.isError && <p role="alert" className="error">Couldn't reach the National Weather Service. Check weather.gov for current alerts.</p>}
+              {weatherQuery.isSuccess && weatherQuery.data.length === 0 && <p className="muted">No active weather alerts for {city}.</p>}
+            </> : <p className="muted">{NO_COVERAGE} Check weather.gov for alerts in {city}.</p>}
             <ul className="map-list">
               {weatherQuery.data?.map(a => (
                 <li key={a.id} className="weather-alert">
@@ -221,16 +250,28 @@ export function MapPage({ city }: { city: string }) {
             </ul>
             {weatherQuery.isSuccess && <p className="muted map-source">Source: National Weather Service · Fetched {clockTime(weatherQuery.dataUpdatedAt)}</p>}
 
-            <h2 className="section-gap">Evacuation zones</h2>
+            <h2 className="section-gap">{showSample ? 'Sample evacuation zones' : 'Evacuation zones'}</h2>
+            {!showSample && !covered && <p className="muted">{NO_COVERAGE}</p>}
+            {!showSample && covered && <>
+              {zonesQuery.isPending && <p className="muted">Loading Cal OES evacuation zones…</p>}
+              {zonesQuery.isError && <p role="alert" className="error">Couldn't reach Cal OES. Check your county emergency website for current orders and warnings.</p>}
+              {zonesQuery.isSuccess && zones.length === 0 && (
+                <p className="muted">No active evacuation orders or warnings reported by Cal OES within about 65 km. This does not confirm that the area is safe.</p>
+              )}
+            </>}
             <ul className="map-list">
               {zones.map(z => (
                 <Row key={z.zone_id} icon="alert" tone={z.level}
                   title={`${z.level === 'order' ? 'Evacuation order' : 'Evacuation warning'} · Zone ${z.zone_id}`}
-                  meta={`${z.source} · ${timeAgo(z.issued_at)}`}
+                  meta={`${z.source} · ${z.issued_at ? `updated ${timeAgo(z.issued_at)}` : 'update time not reported'}`}
                   active={isActive('zone', z.zone_id)} onClick={() => select({ type: 'zone', id: z.zone_id })} />
               ))}
             </ul>
-            <p className="muted map-source">Sample public data. Not an official emergency service.</p>
+            <p className="muted map-source">
+              {showSample
+                ? 'Sample scenario data. Not real events.'
+                : `Source: Cal OES California Active Evacuation Zones${zonesQuery.isSuccess ? ` · Fetched ${clockTime(zonesQuery.dataUpdatedAt)}` : ''}`}
+            </p>
           </>}
         </section>
       </aside>
