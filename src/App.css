@@ -89,6 +89,7 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 .swatch.zone-quake { background: #7c4a1e; }
 .swatch.incident { height: 16px; border-radius: 50%; background: var(--fire); }
 .swatch.perimeter { background: rgba(194, 65, 12, .15); border: 1.5px solid var(--fire); border-radius: 2px; }
+.swatch.shaking { height: 16px; border: 2px solid #7c4a1e; border-radius: 50%; box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 4.5px rgba(124, 74, 30, .5); }
 .swatch.official { background: var(--official); }
 .swatch.verified { background: var(--verified); }
 .swatch.community { border: 2px dashed var(--community); }

@@ -6,7 +6,7 @@ import { setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { Activity, Droplets, Flame, Tent, ThermometerSun, TriangleAlert, type LucideIcon } from 'lucide-react'
 import type { PerimeterCollection } from '../hazards/liveHazards'
-import type { Incident, MapSelection, Shelter, ZoneCollection } from '../map/sampleData'
+import type { Incident, MapSelection, ShakeMapCollection, Shelter, ZoneCollection } from '../map/sampleData'
 
 // Vite's dev bundling breaks MapLibre's default worker path, so point it at the file directly.
 setWorkerUrl(workerUrl)
@@ -34,12 +34,13 @@ type Props = {
   incidents: Incident[]
   zones: ZoneCollection
   perimeters: PerimeterCollection
+  shakeMaps: ShakeMapCollection
   center: { lat: number; lng: number }
   selection: MapSelection | null
   onSelect: (selection: MapSelection) => void
 }
 
-export function ShelterMap({ shelters, incidents, zones, perimeters, center, selection, onSelect }: Props) {
+export function ShelterMap({ shelters, incidents, zones, perimeters, shakeMaps, center, selection, onSelect }: Props) {
   const mapRef = useRef<MapRef>(null)
 
   // Follow the selected city. The first render uses initialViewState, so this only moves on later changes.
@@ -82,6 +83,19 @@ export function ShelterMap({ shelters, incidents, zones, perimeters, center, sel
       }}
     >
       <NavigationControl position="top-right" />
+
+      {/* Stronger shaking (higher MMI) draws darker and thicker. */}
+      <Source id="shakemaps" type="geojson" data={shakeMaps}>
+        <Layer
+          id="shakemap-line"
+          type="line"
+          paint={{
+            'line-color': '#7C4A1E',
+            'line-width': ['interpolate', ['linear'], ['get', 'mmi'], 2, 1.5, 6, 3.5],
+            'line-opacity': ['interpolate', ['linear'], ['get', 'mmi'], 2, 0.35, 6, 0.95],
+          }}
+        />
+      </Source>
 
       <Source id="perimeters" type="geojson" data={perimeters}>
         <Layer id="perimeter-fill" type="fill" paint={{ 'fill-color': '#C2410C', 'fill-opacity': 0.15 }} />

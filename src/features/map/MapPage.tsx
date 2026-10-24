@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useCommunitySession } from '../community/session'
-import { cityCenter, clockTime, hasLiveCoverage, NO_COVERAGE, noPerimeters, useEarthquakes, useEvacuationZones, useFireIncidents, useFirePerimeters, useWeatherAlerts } from '../hazards/liveHazards'
+import { cityCenter, clockTime, hasLiveCoverage, NO_COVERAGE, noPerimeters, useEarthquakes, useEvacuationZones, useFireIncidents, useFirePerimeters, useShakeMaps, useWeatherAlerts } from '../hazards/liveHazards'
 import { Icon, ShelterMap } from '../shelters/ShelterMap'
 import { useShelters } from '../shelters/useShelters'
-import { noZones, sampleIncidents, sampleShelters, sampleZones, type Incident, type MapSelection, type Shelter, type ZoneProperties } from './sampleData'
+import { noShakeMaps, noZones, sampleIncidents, sampleShakeMaps, sampleShelters, sampleZones, type Incident, type MapSelection, type Shelter, type ZoneProperties } from './sampleData'
 
 type MapTab = 'incidents' | 'shelters' | 'alerts'
 
@@ -112,6 +112,7 @@ export function MapPage({ city }: { city: string }) {
   const weatherQuery = useWeatherAlerts(city)
   const zonesQuery = useEvacuationZones(city)
   const perimetersQuery = useFirePerimeters(city)
+  const shakeMapsQuery = useShakeMaps(city)
   const covered = hasLiveCoverage(city)
 
   // Live mode shows only real data. The sample scenario swaps in demo incidents and zones together,
@@ -122,6 +123,7 @@ export function MapPage({ city }: { city: string }) {
   const incidents = showSample ? sampleIncidents : [...firesQuery.data ?? [], ...quakesQuery.data ?? []]
   const zoneCollection = showSample ? sampleZones : zonesQuery.data ?? noZones
   const perimeters = showSample ? noPerimeters : perimetersQuery.data ?? noPerimeters
+  const shakeMaps = showSample ? sampleShakeMaps : shakeMapsQuery.data ?? noShakeMaps
   // Multi-part zones arrive as several features; list each zone once.
   const zones = [...new Map(zoneCollection.features.map(f => [f.properties.zone_id, f.properties])).values()]
 
@@ -140,7 +142,7 @@ export function MapPage({ city }: { city: string }) {
   return (
     <div className="map-page">
       <section className="map-area" aria-label="Map">
-        <ShelterMap shelters={shelters} incidents={incidents} zones={zoneCollection} perimeters={perimeters} center={center} selection={selection} onSelect={select} />
+        <ShelterMap shelters={shelters} incidents={incidents} zones={zoneCollection} perimeters={perimeters} shakeMaps={shakeMaps} center={center} selection={selection} onSelect={select} />
         {showSample && <p className="sample-banner" role="status">Sample scenario: these incidents and evacuation zones are not real events.</p>}
         <details className="map-legend" open>
           <summary>Legend</summary>
@@ -149,6 +151,7 @@ export function MapPage({ city }: { city: string }) {
           <span><i className="swatch zone-fire" /><i className="swatch zone-flood" /><i className="swatch zone-quake" />Fire · Flood · Earthquake</span>
           <span><i className="swatch incident" />Incident</span>
           <span><i className="swatch perimeter" />Fire perimeter</span>
+          <span><i className="swatch shaking" />Earthquake shaking rings</span>
           <span><i className="swatch official" />Official shelter</span>
           <span><i className="swatch verified" />Verified shelter</span>
           <span><i className="swatch community" />Community-submitted</span>

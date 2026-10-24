@@ -1,4 +1,4 @@
-import type { FeatureCollection, Polygon } from 'geojson'
+import type { FeatureCollection, LineString, MultiLineString, Polygon } from 'geojson'
 
 // Sample data for the demo, so the map works without a live data source.
 // Timestamps are relative to page load so "updated X min ago" stays believable.
@@ -135,9 +135,41 @@ export const sampleIncidents: Incident[] = [
     source: 'Sample data (National Weather Service)',
     updated_at: minutesAgo(10),
   },
+  {
+    id: 'incident-5',
+    kind: 'earthquake',
+    title: 'M4.8 earthquake',
+    location_text: '3 km E of Rohnert Park',
+    latitude: 38.3396,
+    longitude: -122.6670,
+    source: 'Sample data (USGS)',
+    updated_at: minutesAgo(20),
+  },
 ]
 
 export type ZoneCollection = FeatureCollection<Polygon, ZoneProperties>
+
+// Earthquake shaking rings; mmi is the shaking intensity (Modified Mercalli scale, 1-10).
+export type ShakeMapCollection = FeatureCollection<LineString | MultiLineString, { mmi: number }>
+export const noShakeMaps: ShakeMapCollection = { type: 'FeatureCollection', features: [] }
+
+// A rough circle as a closed line; fine for sample rings a few km across.
+function ring(lat: number, lng: number, km: number): [number, number][] {
+  return Array.from({ length: 49 }, (_, i) => {
+    const angle = (i / 48) * 2 * Math.PI
+    return [lng + (km / (111.32 * Math.cos(lat * Math.PI / 180))) * Math.cos(angle), lat + (km / 110.57) * Math.sin(angle)]
+  })
+}
+
+// Shaking rings for the sample Rohnert Park quake (incident-5): stronger shaking closer in.
+export const sampleShakeMaps: ShakeMapCollection = {
+  type: 'FeatureCollection',
+  features: [[5, 4], [4, 9], [3, 16]].map(([mmi, km]) => ({
+    type: 'Feature',
+    properties: { mmi: mmi! },
+    geometry: { type: 'LineString', coordinates: ring(38.3396, -122.6670, km!) },
+  })),
+}
 
 // Empty collection: used while live zones load or fail.
 export const noZones: ZoneCollection = { type: 'FeatureCollection', features: [] }

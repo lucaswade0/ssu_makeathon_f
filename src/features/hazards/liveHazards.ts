@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson'
-import type { Incident, ZoneCollection, ZoneProperties } from '../map/sampleData'
+import type { Incident, ShakeMapCollection, ZoneCollection, ZoneProperties } from '../map/sampleData'
 
 // shortcut: only these Sonoma County cities have coordinates, so live data is off everywhere else. Replace with geocoding to cover any city.
 const cityCenters: Record<string, { lat: number; lng: number }> = {
@@ -277,6 +277,67 @@ export function useEarthquakes(city: string) {
   return useQuery({
     queryKey: ['hazards', 'earthquakes', city.trim()],
     queryFn: () => fetchEarthquakes(city),
+    refetchInterval: 5 * 60_000,
+    retry: 1,
+    enabled: hasLiveCoverage(city),
+  })
+}
+
+// ---------- Earthquake shaking rings: USGS ShakeMap ----------
+
+// Only larger quakes get a ShakeMap, so most days this returns nothing.
+const shakeListSchema = z.object({ features: z.array(z.object({ properties: z.object({ detail: z.string() }) })) })
+const shakeDetailSchema = z.object({
+  properties: z.object({
+    products: z.object({
+      shakemap: z.array(z.object({ contents: z.record(z.string(), z.object({ url: z.string() })) })).min(1),
+    }),
+  }),
+})
+const lineGeometry = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('LineString'), coordinates: z.array(position) }),
+  z.object({ type: z.literal('MultiLineString'), coordinates: z.array(z.array(position)) }),
+])
+const contourSchema = z.object({
+  features: z.array(z.object({ geometry: lineGeometry.nullable(), properties: z.object({ value: z.number() }) })),
+})
+
+async function getJson(url: string, label: string) {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`${label} request failed (${response.status})`)
+  return response.json()
+}
+
+export async function fetchShakeMaps(city: string): Promise<ShakeMapCollection> {
+  const { lat, lng } = cityCenter(city)
+  const query = new URLSearchParams({
+    format: 'geojson',
+    latitude: String(lat),
+    longitude: String(lng),
+    maxradiuskm: '65',
+    minmagnitude: String(QUAKE_MIN_MAGNITUDE),
+    starttime: new Date(Date.now() - QUAKE_DAYS * 86_400_000).toISOString(),
+    producttype: 'shakemap',
+  })
+  const quakes = shakeListSchema.parse(await getJson(`${USGS_QUERY_URL}?${query}`, 'ShakeMap list'))
+
+  const rings = await Promise.all(quakes.features.map(async ({ properties }) => {
+    const detail = shakeDetailSchema.parse(await getJson(properties.detail, 'Earthquake detail'))
+    const contourUrl = detail.properties.products.shakemap[0]!.contents['download/cont_mmi.json']?.url
+    if (!contourUrl) return []
+    const contours = contourSchema.parse(await getJson(contourUrl, 'ShakeMap contour'))
+    // Whole-number intensities from 2 (weak shaking) up keep the map readable; 1 is "not felt".
+    return contours.features.flatMap(({ geometry, properties: { value } }) => geometry && Number.isInteger(value) && value >= 2
+      ? [{ type: 'Feature' as const, geometry, properties: { mmi: value } }]
+      : [])
+  }))
+  return { type: 'FeatureCollection', features: rings.flat() }
+}
+
+export function useShakeMaps(city: string) {
+  return useQuery({
+    queryKey: ['hazards', 'shakemaps', city.trim()],
+    queryFn: () => fetchShakeMaps(city),
     refetchInterval: 5 * 60_000,
     retry: 1,
     enabled: hasLiveCoverage(city),
