@@ -3,16 +3,15 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useState } from 'react'
 import { setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
+import { sampleShelters, type Shelter } from '../map/sampleData'
 
 // Vite's dev bundling breaks MapLibre's default worker path, so point it at the file directly.
 setWorkerUrl(workerUrl)
 
-const sample = [
-  { id: '1', name: 'Finley Community Center', latitude: 38.4446, longitude: -122.7340, status: 'official' },
-]
+
 
 export function ShelterMap() {
-  const [selected, setSelected] = useState<(typeof sample)[number] | null>(null)
+  const [selected, setSelected] = useState<Shelter | null>(null)
 
   return (
     <Map
@@ -21,7 +20,7 @@ export function ShelterMap() {
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
     >
       <NavigationControl position="top-right" />
-      {sample.map(s => (
+      {sampleShelters.map(s => (
         <Marker
           key={s.id}
           latitude={s.latitude}
