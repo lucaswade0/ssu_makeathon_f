@@ -17,6 +17,15 @@ export function MapPage() {
     <div className="map-page">
       <section className="map-area" aria-label="Map">
         <ShelterMap />
+        <div className="map-legend">
+          <strong>Legend</strong>
+          <span><i className="swatch order" />Evacuation order</span>
+          <span><i className="swatch warning" />Evacuation warning</span>
+          <span><i className="swatch incident" />Incident</span>
+          <span><i className="swatch official" />Official shelter</span>
+          <span><i className="swatch verified" />Verified shelter</span>
+          <span><i className="swatch community" />Community-submitted</span>
+        </div>
       </section>
 
       <aside className="map-panel" aria-label="Map details">

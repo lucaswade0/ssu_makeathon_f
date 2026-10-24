@@ -54,12 +54,32 @@ footer { border-top: 1px solid #cbd0d6; padding: 18px 0 28px; font-size: 12px; c
   .panel { padding: 16px; }
 }
 .map-page { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; margin-bottom: 28px; }
-.map-area { height: 70vh; min-height: 420px; border: 1px solid #d0d4d9; border-radius: 16px; overflow: hidden; }
+.map-area { position: relative; height: 70vh; min-height: 420px; border: 1px solid #d0d4d9; border-radius: 16px; overflow: hidden; }
 .map-panel { display: flex; flex-direction: column; gap: 16px; }
 .map-tabs { display: flex; gap: 4px; padding: 4px; background: #fff; border: 1px solid #e3e5e8; border-radius: 12px; }
 .map-tabs button { flex: 1; min-height: 44px; border: 0; border-radius: 8px; background: transparent; color: #1d2125; font-weight: 600; }
 .map-tabs button[aria-selected='true'] { background: #1d2125; color: #fff; }
 .map-card { padding: 20px; background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; }
+
+.map-marker { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 3px solid #fff; color: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); cursor: pointer; }
+.map-marker.incident { border-radius: 50%; }
+.map-marker.fire { background: #c2410c; }
+.map-marker.flood { background: #1856b8; }
+.map-marker.heat { background: #f7b91f; color: #1d2125; }
+.map-marker.shelter { border-radius: 10px; }
+.map-marker.official { background: #14532d; }
+.map-marker.verified { background: #1f7a3e; }
+.map-marker.community_submitted { background: #fff; color: #4b545d; border: 2px dashed #4b545d; }
+
+.map-legend { position: absolute; left: 16px; bottom: 16px; display: grid; gap: 6px; padding: 12px 14px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, .18); font-size: 13px; }
+.map-legend span { display: flex; align-items: center; gap: 8px; }
+.swatch { display: inline-block; width: 16px; height: 14px; box-sizing: border-box; }
+.swatch.order { background: rgba(180, 35, 24, .3); border: 2px solid #b42318; }
+.swatch.warning { background: rgba(247, 185, 31, .25); border: 2px dashed #9a6b00; }
+.swatch.incident { border-radius: 50%; background: #c2410c; height: 16px; }
+.swatch.official { border-radius: 4px; background: #14532d; }
+.swatch.verified { border-radius: 4px; background: #1f7a3e; }
+.swatch.community { border-radius: 4px; border: 2px dashed #4b545d; }
 
 @media (max-width: 900px) {
   .map-page { grid-template-columns: 1fr; }
