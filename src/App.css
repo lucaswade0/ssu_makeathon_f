@@ -285,3 +285,14 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 .post-filter { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
 .post-filter .type-chip { min-height: 44px; padding: 0 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
 .post-filter .type-chip[aria-checked='true'] { border-color: var(--text); background: var(--text); color: #fff; }
+
+.hazard-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.hazard-filters legend { float: left; width: 100%; margin-bottom: 4px; padding: 0; font-size: 13px; font-weight: 700; }
+.hazard-filters p { width: 100%; margin: 2px 0 0; }
+.hazard-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px 4px 6px; border-radius: 999px; background: var(--bg); color: var(--muted); font-size: 14px; font-weight: 600; }
+.hazard-chip.on { border-color: var(--tone); background: var(--surface); color: var(--text); }
+.hazard-chip.on svg { color: var(--tone); }
+.hazard-switch { position: relative; flex: 0 0 28px; height: 16px; border-radius: 999px; background: #c5cad0; }
+.hazard-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; }
+.hazard-chip.on .hazard-switch { background: var(--tone); }
+.hazard-chip.on .hazard-switch::after { transform: translateX(12px); }
