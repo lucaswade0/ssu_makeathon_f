@@ -32,8 +32,8 @@ describe('news items', () => {
 
   it('labels evacuation orders and warnings', () => {
     const items = zoneItems([
-      { zone_id: 'A1', level: 'order', instructions: 'Leave now.', source: 'Cal OES', issued_at: null },
-      { zone_id: 'A2', level: 'warning', instructions: 'Be ready.', source: 'Cal OES', issued_at: null },
+      { zone_id: 'A1', level: 'order', hazard: 'fire', instructions: 'Leave now.', source: 'Cal OES', issued_at: null },
+      { zone_id: 'A2', level: 'warning', hazard: 'fire', instructions: 'Be ready.', source: 'Cal OES', issued_at: null },
     ], false)
     expect(items.map(item => item.title)).toEqual(['Evacuation order · Zone A1', 'Evacuation warning · Zone A2'])
   })
