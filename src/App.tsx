@@ -5,6 +5,7 @@ import { useCommunityFeed, useOfficialAlert, usePostMutation, usePostReplies, us
 import { useCommunitySession } from './features/community/session'
 import type { CommunityPost, CommunityReply } from './features/community/schemas'
 import { MapPage } from './features/map/MapPage'
+import { AppShell, ComingSoon, type Page } from './layout/AppShell'
 import './App.css'
 
 function ErrorMessage({ error }: { error: unknown }) {
@@ -220,36 +221,23 @@ function Feed({ city, sample }: { city: string; sample: boolean }) {
 }
 
 function App() {
+  const [page, setPage] = useState<Page>('feed')
   const [city, setCity] = useState('Santa Rosa')
-  const [draftCity, setDraftCity] = useState(city)
   const [sample, setSample] = useState(false)
-  function selectCity(event: FormEvent) {
-    event.preventDefault()
-    if (draftCity.trim()) setCity(draftCity.trim())
-  }
-  return <div className="site">
-    <header><h1>Safety SAM</h1><p>Community feed for local disasters</p></header>
-    <main>
-      <p className="intro">Local updates and questions, with official instructions shown separately.</p>
-      <MapPage city={city} />
-      <div className="layout">
-        <aside>
-          <section className="panel" aria-labelledby="city-heading">
-            <h2 id="city-heading">Choose your city</h2>
-            <form onSubmit={selectCity}>
-              <label>City<input value={draftCity} onChange={e => setDraftCity(e.target.value)} maxLength={120} required disabled={sample} /></label>
-              <button type="submit" disabled={sample || !draftCity.trim()}>Show feed</button>
-            </form>
-            <p className="muted">Choose a city for this session. Your location history is not saved.</p>
-          </section>
-          {!sample && <Account />}
-          <button className="mode-button" onClick={() => setSample(!sample)}>{sample ? 'Back to live feed' : 'View sample feed'}</button>
-        </aside>
-        <section className="feed" aria-label="Community feed"><Feed key={`${city}-${sample}`} city={city} sample={sample} /></section>
-      </div>
-    </main>
-    <footer>Preparedness prototype. Community posts are unverified. Follow official local instructions; call 911 for an emergency.</footer>
-  </div>
+
+  return <AppShell page={page} onNavigate={setPage} city={city} onCityChange={setCity}>
+    {page === 'feed' && <div className="layout">
+      <aside>
+        {!sample && <Account />}
+        <button className="mode-button" onClick={() => setSample(!sample)}>{sample ? 'Back to live feed' : 'View sample feed'}</button>
+      </aside>
+      <section className="feed" aria-label="Community feed"><Feed key={`${city}-${sample}`} city={city} sample={sample} /></section>
+    </div>}
+    {page === 'map' && <MapPage city={city} />}
+    {page === 'news' && <ComingSoon title="News" text="Local news and public data summaries will appear here." />}
+    {page === 'resources' && <ComingSoon title={`Resources in ${city}`} text="Shelters and supplies, labeled by who confirmed them. Coming in the next update." />}
+    {page === 'sam' && <ComingSoon title="Meet SAM" text="SAM will answer general preparedness questions and point you to official instructions. Coming soon." />}
+  </AppShell>
 }
 
 export default App
