@@ -3,34 +3,52 @@ import { z } from 'zod'
 import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson'
 import type { Incident, ZoneCollection, ZoneProperties } from '../map/sampleData'
 
-const SANTA_ROSA = { lat: 38.4404, lng: -122.7141 }
-
-// shortcut: only the demo city has coordinates, so live data is off for every other city. Replace with geocoding when city detection lands.
+// shortcut: only these Sonoma County cities have coordinates, so live data is off everywhere else. Replace with geocoding to cover any city.
 const cityCenters: Record<string, { lat: number; lng: number }> = {
-  'Santa Rosa': SANTA_ROSA,
+  'Santa Rosa': { lat: 38.4404, lng: -122.7141 },
+  'Petaluma': { lat: 38.2324, lng: -122.6367 },
+  'Rohnert Park': { lat: 38.3396, lng: -122.7011 },
+  'Cotati': { lat: 38.3266, lng: -122.7092 },
+  'Sebastopol': { lat: 38.4021, lng: -122.8239 },
+  'Windsor': { lat: 38.5471, lng: -122.8164 },
+  'Healdsburg': { lat: 38.6105, lng: -122.8697 },
+  'Sonoma': { lat: 38.2919, lng: -122.4580 },
 }
 
-export const NO_COVERAGE = 'Live hazard data is only set up for Santa Rosa in this demo.'
+export const NO_COVERAGE = 'Live hazard data is only set up for Sonoma County cities in this demo.'
 
 const NEARBY_KM = 30
 
-// Matches a browser location to a covered city. Flat-earth distance is accurate enough within tens of km.
+// Flat-earth distance is accurate enough within tens of km.
+function distanceKm(lat: number, lng: number, center: { lat: number; lng: number }) {
+  const x = (lng - center.lng) * Math.cos(((lat + center.lat) / 2) * Math.PI / 180) * 111.32
+  const y = (lat - center.lat) * 110.57
+  return Math.hypot(x, y)
+}
+
+// Matches a browser location to the closest covered city within 30 km.
 export function nearestCoveredCity(lat: number, lng: number): string | null {
+  let best: { name: string; km: number } | null = null
   for (const [name, center] of Object.entries(cityCenters)) {
-    const x = (lng - center.lng) * Math.cos(((lat + center.lat) / 2) * Math.PI / 180) * 111.32
-    const y = (lat - center.lat) * 110.57
-    if (Math.hypot(x, y) <= NEARBY_KM) return name
+    const km = distanceKm(lat, lng, center)
+    if (km <= NEARBY_KM && (!best || km < best.km)) best = { name, km }
   }
-  return null
+  return best?.name ?? null
+}
+
+// Case-insensitive, so a typed "petaluma" still finds Petaluma.
+function findCity(city: string) {
+  const wanted = city.trim().toLowerCase()
+  return Object.entries(cityCenters).find(([name]) => name.toLowerCase() === wanted)?.[1]
 }
 
 export function hasLiveCoverage(city: string) {
-  return Object.hasOwn(cityCenters, city.trim())
+  return findCity(city) !== undefined
 }
 
 // Throws instead of guessing, so we never report "nothing nearby" for a place we didn't search.
 export function cityCenter(city: string) {
-  const center = cityCenters[city.trim()]
+  const center = findCity(city)
   if (!center) throw new Error(`Live hazard data isn't set up for ${city}`)
   return center
 }

@@ -1,11 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchEvacuationZones, nearestCoveredCity } from './liveHazards'
+import { fetchEvacuationZones, hasLiveCoverage, nearestCoveredCity } from './liveHazards'
 
 describe('nearestCoveredCity', () => {
-  it('matches locations within 30 km of Santa Rosa only', () => {
-    expect(nearestCoveredCity(38.4022, -122.8239)).toBe('Santa Rosa') // Sebastopol, ~10 km
-    expect(nearestCoveredCity(38.8055, -123.0172)).toBeNull() // Cloverdale, ~48 km
+  it('picks the closest covered city, not just any within 30 km', () => {
+    expect(nearestCoveredCity(38.2400, -122.6400)).toBe('Petaluma') // ~24 km from Santa Rosa, ~1 km from Petaluma
+    expect(nearestCoveredCity(38.4500, -122.7100)).toBe('Santa Rosa')
+    expect(nearestCoveredCity(39.1502, -123.2078)).toBeNull() // Ukiah, outside Sonoma County coverage
     expect(nearestCoveredCity(36.7378, -119.7871)).toBeNull() // Fresno
+  })
+
+  it('finds typed cities regardless of case', () => {
+    expect(hasLiveCoverage(' petaluma ')).toBe(true)
+    expect(hasLiveCoverage('Fresno')).toBe(false)
   })
 })
 
