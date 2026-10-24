@@ -4,12 +4,10 @@ import { useEffect, useRef } from 'react'
 import { setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { Droplets, Flame, Tent, ThermometerSun, TriangleAlert, type LucideIcon } from 'lucide-react'
-import { sampleIncidents, sampleZones, type MapSelection, type Shelter } from '../map/sampleData'
+import { sampleZones, type Incident, type MapSelection, type Shelter } from '../map/sampleData'
 
-// Vites dev bundling breaks MapLibre's default worker path, so point it at the file directly.
+// Vite's dev bundling breaks MapLibre's default worker path, so point it at the file directly.
 setWorkerUrl(workerUrl)
-
-const loadedAt = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 
 const icons: Record<'fire' | 'flood' | 'heat' | 'shelter' | 'alert', LucideIcon> = {
   fire: Flame,
@@ -26,11 +24,12 @@ export function Icon({ name, size = 20 }: { name: keyof typeof icons; size?: num
 
 type Props = {
   shelters: Shelter[]
+  incidents: Incident[]
   selection: MapSelection | null
   onSelect: (selection: MapSelection) => void
 }
 
-export function ShelterMap({  shelters, selection, onSelect }: Props) {
+export function ShelterMap({ shelters, incidents, selection, onSelect }: Props) {
   const mapRef = useRef<MapRef>(null)
 
   // Move the camera whenever the selection changes, whether it came from the map or the side panel.
@@ -47,10 +46,10 @@ export function ShelterMap({  shelters, selection, onSelect }: Props) {
       return
     }
     const item = selection.type === 'incident'
-      ? sampleIncidents.find(i => i.id === selection.id)
+      ? incidents.find(i => i.id === selection.id)
       : shelters.find(s => s.id === selection.id)
     if (item) map.flyTo({ center: [item.longitude, item.latitude], zoom: 14 })
-  }, [selection, shelters])
+  }, [selection, shelters, incidents])
 
   const isSelected = (type: MapSelection['type'], id: string) => selection?.type === type && selection.id === id
 
@@ -60,7 +59,7 @@ export function ShelterMap({  shelters, selection, onSelect }: Props) {
       initialViewState={{ latitude: 38.455, longitude: -122.71, zoom: 12 }}
       style={{ width: '100%', height: '100%' }}
       mapStyle="https://tiles.openfreemap.org/styles/positron"
-      attributionControl={{ compact: true, customAttribution: `Sample public data · Fetched ${loadedAt}` }}
+      attributionControl={{ compact: true, customAttribution: 'Wildfires: NIFC WFIGS · Evacuation zones: sample data' }}
       interactiveLayerIds={['zone-fill']}
       onClick={e => {
         const zoneId = e.features?.[0]?.properties?.zone_id
@@ -92,7 +91,7 @@ export function ShelterMap({  shelters, selection, onSelect }: Props) {
         />
       </Source>
 
-      {sampleIncidents.map(i => (
+      {incidents.map(i => (
         <Marker key={i.id} latitude={i.latitude} longitude={i.longitude}
           onClick={e => { e.originalEvent.stopPropagation(); onSelect({ type: 'incident', id: i.id }) }}>
           <button type="button" className={`map-marker incident ${i.kind}${isSelected('incident', i.id) ? ' selected' : ''}`} aria-label={i.title}>

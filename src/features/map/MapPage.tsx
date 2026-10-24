@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useCommunitySession } from '../community/session'
+import { useFireIncidents, useWeatherAlerts, clockTime } from '../hazards/liveHazards'
 import { Icon, ShelterMap } from '../shelters/ShelterMap'
 import { useShelters } from '../shelters/useShelters'
-import { sampleIncidents, sampleShelters, sampleZones, type MapSelection, type Shelter } from './sampleData'
+import { sampleIncidents, sampleShelters, sampleZones, type Incident, type MapSelection, type Shelter } from './sampleData'
 
 type MapTab = 'incidents' | 'shelters' | 'alerts'
 
@@ -49,9 +50,9 @@ function Row({ icon, tone, title, meta, active, onClick }: RowProps) {
   )
 }
 
-function Detail({ selection, shelters }: { selection: MapSelection; shelters: Shelter[] }) {
+function Detail({ selection, shelters, incidents }: { selection: MapSelection; shelters: Shelter[]; incidents: Incident[] }) {
   if (selection.type === 'incident') {
-    const i = sampleIncidents.find(x => x.id === selection.id)
+    const i = incidents.find(x => x.id === selection.id)
     if (!i) return null
     return <>
       <div className="detail-head">
@@ -61,7 +62,7 @@ function Detail({ selection, shelters }: { selection: MapSelection; shelters: Sh
       {i.acres !== undefined && (
         <div className="detail-stats">
           <div><small>AREA</small><strong>{i.acres.toLocaleString()} acres</strong></div>
-          <div><small>CONTAINMENT</small><strong>{i.containment ?? 0}%</strong></div>
+          <div><small>CONTAINMENT</small><strong>{i.containment !== undefined ? `${i.containment}%` : 'Not reported'}</strong></div>
         </div>
       )}
       <p className="muted">Source: {i.source}</p>
@@ -105,9 +106,12 @@ export function MapPage({ city }: { city: string }) {
 
   // Without Supabase settings, fall back to sample data so the demo still works offline.
   const shelters = configured ? sheltersQuery.data ?? [] : sampleShelters
-  const fetchedAt = sheltersQuery.dataUpdatedAt
-    ? new Date(sheltersQuery.dataUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-    : null
+  const fetchedAt = sheltersQuery.dataUpdatedAt ? clockTime(sheltersQuery.dataUpdatedAt) : null
+
+  const firesQuery = useFireIncidents(city)
+  const weatherQuery = useWeatherAlerts(city)
+  // Live fires when the feed works. Sample incidents only if it fails, and the panel says so.
+  const incidents = firesQuery.isError ? sampleIncidents : firesQuery.data ?? []
 
   function select(next: MapSelection) {
     setSelection(next)
@@ -119,8 +123,8 @@ export function MapPage({ city }: { city: string }) {
   return (
     <div className="map-page">
       <section className="map-area" aria-label="Map">
-        <ShelterMap shelters={shelters} selection={selection} onSelect={select} />
-                  <details className="map-legend" open>
+        <ShelterMap shelters={shelters} incidents={incidents} selection={selection} onSelect={select} />
+        <details className="map-legend" open>
           <summary>Legend</summary>
           <span><i className="swatch order" />Evacuation order</span>
           <span><i className="swatch warning" />Evacuation warning</span>
@@ -149,21 +153,30 @@ export function MapPage({ city }: { city: string }) {
         {selection && (
           <section className="map-card">
             <button type="button" className="back-link" onClick={() => setSelection(null)}>← Back to list</button>
-            <Detail selection={selection} shelters={shelters} />
+            <Detail selection={selection} shelters={shelters} incidents={incidents} />
           </section>
         )}
 
         <section className="map-card">
           {tab === 'incidents' && <>
-            <h2>All incidents near {city}</h2>
+            <h2>Active wildfires near {city}</h2>
+            {firesQuery.isPending && <p className="muted">Loading wildfire data…</p>}
+            {firesQuery.isError && <p role="alert" className="error">Couldn't reach the live wildfire feed. Showing sample incidents instead.</p>}
+            {firesQuery.isSuccess && incidents.length === 0 && (
+              <p className="muted">No active wildfires reported within about 65 km. This does not confirm that the area is safe.</p>
+            )}
             <ul className="map-list">
-              {sampleIncidents.map(i => (
+              {incidents.map(i => (
                 <Row key={i.id} icon={i.kind} tone={i.kind} title={i.title}
                   meta={`${i.location_text} · ${timeAgo(i.updated_at)}`}
                   active={isActive('incident', i.id)} onClick={() => select({ type: 'incident', id: i.id })} />
               ))}
             </ul>
-            <p className="muted map-source">Sample public data. Not an official emergency service.</p>
+            <p className="muted map-source">
+              {firesQuery.isSuccess
+                ? `Source: NIFC WFIGS · Fetched ${clockTime(firesQuery.dataUpdatedAt)}`
+                : 'Sample public data. Not an official emergency service.'}
+            </p>
           </>}
 
           {tab === 'shelters' && <>
@@ -193,7 +206,22 @@ export function MapPage({ city }: { city: string }) {
           </>}
 
           {tab === 'alerts' && <>
-            <h2>Evacuation zones</h2>
+            <h2>Weather alerts</h2>
+            {weatherQuery.isPending && <p className="muted">Loading National Weather Service alerts…</p>}
+            {weatherQuery.isError && <p role="alert" className="error">Couldn't reach the National Weather Service. Check weather.gov for current alerts.</p>}
+            {weatherQuery.isSuccess && weatherQuery.data.length === 0 && <p className="muted">No active weather alerts for {city}.</p>}
+            <ul className="map-list">
+              {weatherQuery.data?.map(a => (
+                <li key={a.id} className="weather-alert">
+                  <strong>{a.event}</strong>
+                  <small>{a.severity} · {a.senderName}{a.expires ? ` · Until ${new Date(a.expires).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}</small>
+                  {a.headline && <p>{a.headline}</p>}
+                </li>
+              ))}
+            </ul>
+            {weatherQuery.isSuccess && <p className="muted map-source">Source: National Weather Service · Fetched {clockTime(weatherQuery.dataUpdatedAt)}</p>}
+
+            <h2 className="section-gap">Evacuation zones</h2>
             <ul className="map-list">
               {zones.map(z => (
                 <Row key={z.zone_id} icon="alert" tone={z.level}
