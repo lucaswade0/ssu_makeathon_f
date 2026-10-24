@@ -54,7 +54,7 @@ The initial page provides manual city selection, email-link sign-in, chronologic
 
 Setup for a shared Supabase project (coordinate with the team before applying migrations):
 
-1. Apply the initial migration, then `supabase/migrations/20261024000000_private_profile_defaults.sql`. The follow-up migration stops deriving public names from email addresses for future signups and adds pagination indexes. Existing profile names are preserved; review older email-derived names privately before a public demo.
+1. Apply all migrations in `supabase/migrations/` in order (`supabase db push`). The follow-up migration stops deriving public names from email addresses for future signups and adds pagination indexes. Existing profile names are preserved; review older email-derived names privately before a public demo.
 2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` to the project's URL and public anon/publishable key. Never use a service-role or secret key in the browser.
 3. Enable the email provider in Supabase Auth. For the demo, turn off "Confirm email" so new accounts can sign in immediately.
 4. Start the app with `npm run dev`. Without both environment variables, live queries stay disabled and the sample feed remains available. The session hook exposes `configured: false` so the UI can show setup/demo status explicitly.
@@ -70,7 +70,7 @@ Frontend entry points:
 
 Use the same canonical city string for all data sources and the city selector; database city matching is exact after trimming. The hooks take a city selected for the current session and do not collect or persist location. City detection and manual fallback belong to the UI integration.
 
-Queries refresh every 30 seconds while the page is active and on window focus; this increment does not enable Supabase Realtime. Render query/mutation errors and loading, empty, and stale states explicitly. Failed reads are errors, not fake empty feeds. Use `dataUpdatedAt` and the row timestamps when labeling freshness. Only public profile IDs and display names are joined into posts and replies.
+Queries refresh every 30 seconds while the page is active and on window focus, and posts and replies also refresh through Supabase Realtime (enabled by the third migration). Render query/mutation errors and loading, empty, and stale states explicitly. Failed reads are errors, not fake empty feeds. Use `dataUpdatedAt` and the row timestamps when labeling freshness. Only public profile IDs and display names are joined into posts and replies.
 
 Pending work: browser city detection, photo upload/storage policies and deletion cleanup, resource reporting, and hosted end-to-end/RLS validation. New posts in this increment are text-only; existing `photo_paths` are returned as metadata, and this client does not manage storage objects. Do not enable attachments until their lifecycle is implemented. Database reply cascade deletion is already provided by the initial migration.
 

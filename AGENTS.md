@@ -8,13 +8,58 @@ Build a polished, dependable demonstration for one selected location and one sel
 
 ## Current repository state
 
-- Frontend: React, TypeScript, and Vite.
-- Mapping dependencies: MapLibre GL JS and react-map-gl.
-- Data and validation dependencies: TanStack Query and Zod.
-- Testing/tooling: Vitest, Playwright, Tailwind tooling, and Oxlint.
-- Backend environment: Supabase-ready variables exist in .env.example.
-- The frontend is intentionally a neutral starter screen. Product UI and map implementation belong to the frontend team.
-- The initial database migration is in supabase/migrations/20261023000000_initial_schema.sql.
+Start here. This section is the quickest way to get oriented; the rest of the file is the product contract.
+
+- Stack: React 19, TypeScript, Vite, TanStack Query, Zod, MapLibre GL JS with react-map-gl, Supabase (Auth, Postgres, Realtime, Storage-ready), Vitest, Oxlint. Playwright is installed, but no end-to-end tests exist yet.
+- The app is a single-page React app with no router. `src/App.tsx` holds the feed and switches pages by state (`feed`, `news`, `map`, `resources`, `sam`, `signin`).
+- Backend: a hosted Supabase project, linked locally with the Supabase CLI. Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_MAP_STYLE_URL`. Without the Supabase variables the live feed stays off and the rest of the app still works.
+- Commands: `npm run dev`, `npm run build`, `npm run lint`, `npm test`.
+
+### Where things live
+
+| Path | What it is |
+| --- | --- |
+| `src/App.tsx`, `src/App.css`, `src/index.css` | Feed, post composer, replies, sign-in page, global styles and design tokens |
+| `src/layout/AppShell.tsx` | Header (logo, location label, profile menu), left nav, simulation bar mount |
+| `src/features/community/` | Supabase API (`api.ts`), TanStack Query hooks with realtime refresh (`hooks.ts`), Zod schemas, session context |
+| `src/features/hazards/liveHazards.ts` | Live public data: NWS alerts, NIFC wildfires and perimeters, Cal OES evacuation zones, USGS earthquakes and ShakeMaps. Only eight Sonoma County cities have coordinates. |
+| `src/features/map/` | Map page and the seeded sample data and types (`sampleData.ts`) |
+| `src/features/shelters/` | Shelter map layer and the Supabase shelter query |
+| `src/features/news/` | News page and the adapters (`newsItems.ts`) that turn each source into one card shape |
+| `src/features/simulation/` | The disaster simulation: scripted scenario (`scenario.ts`), controls reducer and context (`context.ts`), provider, floating bar |
+| `supabase/migrations/` | Database migrations. Never edit an applied one. |
+
+### What is built
+
+- Feed: city-scoped chronological posts, one-level replies, post-type filter (All, Updates, Questions, General) applied in the query, edit and delete for your own posts, realtime refresh, pinned latest official alert.
+- Auth: Supabase email and password. The hosted project must have "Confirm email" turned off for the demo. A header profile menu shows the display name and Sign out.
+- Map: live incidents, evacuation zones, perimeters, ShakeMap rings, weather alerts, and shelters, each with source and fetch time.
+- News: a "Situation updates" list of public-data items with a hazard filter, source, time, and a "Data sources" panel.
+- Disaster simulation: a floating bar (bottom of every page) steps through a scripted, sample-only Santa Rosa wildfire. It drives the pinned alert and sample posts in the feed, incidents, zones, and shelters on the map, and cards in News. All simulated data is labeled sample data. There are no per-page sample toggles; the simulation is the only sample mode.
+- Tests: reducer, scenario, adapter, API, and server-rendered page tests (`npm test`).
+
+### Known gaps and good next tasks
+
+1. No official alerts exist in the database and nothing can create them (no insert policy). Seed a sample alert or mirror NWS alerts into `official_alerts`, keeping the NWS source name and times.
+2. Resources and Meet SAM are "coming soon" placeholders. Resources should show shelters and supplies by category with trust labels. SAM must follow the Safety assistant rules below.
+3. No "report inaccurate or unsafe" flow or reports table, which the data trust rules require.
+4. Shelter RLS lets a user set their own shelter's `status` to official or verified. Fix with a new migration that forces `community_submitted` for regular users.
+5. Photo attachments are not built (no upload UI or storage policies). Hazard type is not in the schema yet (see Multi-hazard direction).
+6. Resource records lack a `category` and a `last_confirmed_at` timestamp for stale handling.
+7. No end-to-end tests, and hosted RLS is not tested.
+
+### Working with the Supabase CLI
+
+- The repo is linked to the hosted project, so `supabase db push --dry-run` then `supabase db push` apply new migrations, and `supabase db query --linked "<sql>"` runs a read query. Always dry-run first.
+- The cloud database is shared. Do not apply migrations, delete data, or change auth settings without telling the team. Never run `supabase config push` blindly: `supabase/config.toml` differs from the hosted project in many settings, and a push would overwrite them.
+- Never commit secrets, service-role keys, or `.env.local`.
+
+### UI conventions
+
+- Design tokens live in `src/index.css`: amber header (`--accent`), charcoal text and active states (`--text`), official blue, evacuation red, verified green, community gray. Font is Inter.
+- Official and community content must stay visually distinct: community content uses a dashed gray badge, official content uses the blue OFFICIAL badge, public data uses a "Public data" badge, and sample data uses a "Sample data" badge.
+- Tap targets are at least 44px. Use the existing spacing scale (multiples of 8px) and card style (white, 1px light border, 16px radius).
+- The location in the header is a plain text label with an "Approximate location" caption and a Change link. Manual city entry must keep working when location permission is denied.
 
 ## Instructions for teammates and coding agents
 
@@ -89,6 +134,12 @@ Use status values that clearly distinguish official, verified, and community. In
 - Public reads are allowed by RLS. Authenticated users can create content and edit or delete only their own posts, replies, and shelter submissions.
 - The latest official alert should be selected by city and issued_at; older alerts remain available for history.
 
+Applied migrations (never edit these):
+
+1. `20261023000000_initial_schema.sql`: tables, RLS, new-user profile trigger.
+2. `20261024000000_private_profile_defaults.sql`: stops deriving public names from emails.
+3. `20261025000000_realtime_feed.sql`: adds `posts` and `post_replies` to the Realtime publication.
+
 When adding a new table or policy, include the relevant RLS policy in the same migration. Keep user-owned data and official responder data separate.
 
 ## Safety assistant
@@ -97,7 +148,7 @@ Keep assistant responses constrained to general preparedness guidance for the se
 
 ## Public data sources
 
-Where the information shown in Safety SAM comes from. None of these are integrated yet; the demo uses seeded sample data (see "Demo data policy" below). Endpoints below were checked on 2026-10-24 and responded without a key unless noted. Confirm each source's terms of use before the final submission.
+Where the information shown in Safety SAM comes from. Integration status: NWS alerts, NIFC incidents and perimeters, USGS earthquakes and ShakeMaps, and Cal OES evacuation zones are integrated in `src/features/hazards/liveHazards.ts` (the browser calls them directly, with a seeded fallback through the simulation). USGS Water Services, NASA FIRMS, and AirNow are not integrated. Endpoints below were checked on 2026-10-24 and responded without a key unless noted. Confirm each source's terms of use before the final submission.
 
 | Source | Hazard | What we would use | Endpoint or docs | Access |
 | --- | --- | --- | --- | --- |
@@ -111,17 +162,17 @@ Where the information shown in Safety SAM comes from. None of these are integrat
 
 Not backed by an open feed we have verified:
 
-- Evacuation orders and warnings come from local county or city emergency agencies. For the demo they are seeded sample records labeled with a placeholder issuing agency, and the live version would link to the real agency's page.
+- Evacuation orders and warnings come from local county or city emergency agencies. The app reads the California Cal OES active evacuation zones layer for live data. The simulation uses seeded sample records labeled with a placeholder issuing agency.
 - Shelters have no single open national feed we rely on. The demo uses seeded official and verified sample records plus community submissions, which stay marked community-submitted until verified.
 - Official alert records in `official_alerts` are entered by responders. NWS alerts can be mirrored into that shape later, but they must keep the NWS source name and issued, effective, and expiry times.
 
 ### Demo data policy
 
-- The five-minute demo must not depend on any live service. Ship a seeded snapshot of each source above in the same shape the live call would return, and fall back to it when a request fails.
+- The five-minute demo must not depend on any live service. The disaster simulation is the seeded fallback: it ships sample data in the same shapes the live calls return, and a presenter can run it if a live request fails. Show source errors explicitly instead of silently substituting sample data.
 - Every item from a public source shows the source name and the fetch time, and expired or old data is labeled stale. Do not re-label public data as official Safety SAM content.
 - Seeded records are sample data. Mark them as such in the interface and never present them as a real, current event.
 - Keep API keys out of the browser and out of the repository. Fetch keyed or header-restricted sources from a server-side function, cache the response, and respect each provider's rate limits.
-- For presentation: show one slide or an in-app "Data sources" panel listing the sources above, which hazard each covers, and which are live versus seeded.
+- For presentation: the News page has a "Data sources" panel. Keep it accurate, and add a slide listing the sources above, which hazard each covers, and which are live versus seeded.
 
 ## External services
 
