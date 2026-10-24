@@ -197,3 +197,9 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 .profile-popover p { margin: 0; }
 .profile-name { font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
 .profile-signout { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; }
+
+.weather-alert { padding: 10px 6px; border-top: 1px solid var(--border); }
+.weather-alert strong { display: block; font-size: 15px; }
+.weather-alert small { color: var(--muted); font-size: 13px; }
+.weather-alert p { margin: 4px 0 0; font-size: 14px; }
+.section-gap { margin-top: 20px; }

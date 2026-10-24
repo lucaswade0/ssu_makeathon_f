@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { BadgeCheck, ExternalLink, MessageSquare, Pencil, Pin, SquarePen, Trash2 } from 'lucide-react'
 import { communityApi } from './features/community/api'
 import { useCommunityFeed, useOfficialAlert, usePostMutation, usePostReplies, useReplyMutation } from './features/community/hooks'
 import { useCommunitySession } from './features/community/session'
 import type { CommunityPost, CommunityReply } from './features/community/schemas'
+import { useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
 import { MapPage } from './features/map/MapPage'
 import { AppShell, ComingSoon, type Page } from './layout/AppShell'
 import './App.css'
-import { BadgeCheck, ExternalLink, MessageSquare, Pencil, Pin, SquarePen, Trash2 } from 'lucide-react'
-import { sampleIncidents } from './features/map/sampleData'
 
 function ErrorMessage({ error }: { error: unknown }) {
   if (!error) return null
@@ -218,6 +218,8 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
   const { session, configured } = useCommunitySession()
   const feed = useCommunityFeed(sample ? '' : city)
   const alert = useOfficialAlert(sample ? '' : city)
+  const fires = useFireIncidents(city)
+  const weather = useWeatherAlerts(city)
   const posts = sample ? samplePosts : feed.data?.pages.flatMap(page => page.posts) || []
   const [refreshing, setRefreshing] = useState(false)
   const [now, setNow] = useState(() => Date.now())
@@ -267,9 +269,11 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
       </section>}
       <div className="incident-strip">
         <span className="live-dot" aria-hidden="true" />
-        <strong>{sampleIncidents.length} active incidents nearby</strong>
+        {fires.isSuccess && weather.isSuccess
+          ? <strong>{fires.data.length} active {fires.data.length === 1 ? 'wildfire' : 'wildfires'} · {weather.data.length} weather {weather.data.length === 1 ? 'alert' : 'alerts'} near {city}</strong>
+          : <strong>{fires.isError || weather.isError ? 'Live hazard data is unavailable right now' : 'Checking live hazard data…'}</strong>}
         <button type="button" onClick={onOpenMap}>View map</button>
-        <span className="muted">Sample public data</span>
+        <span className="muted">Sources: NIFC, National Weather Service</span>
       </div>
       {session && configured && <PostComposer key={session.user.id} city={city} />}
       {configured && feed.isPending && <p role="status">Loading community posts…</p>}
