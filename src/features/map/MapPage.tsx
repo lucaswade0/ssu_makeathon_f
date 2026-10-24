@@ -120,7 +120,6 @@ export function MapPage({ city }: { city: string }) {
     <div className="map-page">
       <section className="map-area" aria-label="Map">
         <ShelterMap shelters={shelters} selection={selection} onSelect={select} />
-        <div className="map-legend">
                   <details className="map-legend" open>
           <summary>Legend</summary>
           <span><i className="swatch order" />Evacuation order</span>
@@ -130,7 +129,6 @@ export function MapPage({ city }: { city: string }) {
           <span><i className="swatch verified" />Verified shelter</span>
           <span><i className="swatch community" />Community-submitted</span>
         </details>
-        </div>
       </section>
 
       <aside className="map-panel" aria-label="Map details">
