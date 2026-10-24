@@ -1,7 +1,30 @@
 :root {
-  font-family: system-ui, sans-serif;
-  color: #1f2933;
-  background: #fafafa;
+  /* Brand */
+  --brand: #0f4c5c;
+  --brand-soft: #d8ecea;
+  --accent: #c4452b;
+  --accent-hover: #a8381f;
+  --accent-soft: #fbe3dc;
+
+  /* Surfaces and text */
+  --bg: #f4f7f6;
+  --surface: #ffffff;
+  --border: #dde5e3;
+  --text: #16252b;
+  --muted: #4e5f66;
+
+  /* Meaning colors:*/
+  --order: #b42318;
+  --order-soft: #fdecea;
+  --warning: #d97706;
+  --warning-soft: #fef3c7;
+  --official: #1e3a8a;
+  --verified: #15803d;
+  --community: #4e5f66;
+
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
