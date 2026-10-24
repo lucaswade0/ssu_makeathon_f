@@ -231,7 +231,7 @@ function App() {
     <header><h1>Safety SAM</h1><p>Community feed for local disasters</p></header>
     <main>
       <p className="intro">Local updates and questions, with official instructions shown separately.</p>
-      <MapPage />
+      <MapPage city={city} />
       <div className="layout">
         <aside>
           <section className="panel" aria-labelledby="city-heading">

@@ -3,7 +3,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useRef } from 'react'
 import { setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
-import { sampleIncidents, sampleShelters, sampleZones, type MapSelection } from '../map/sampleData'
+import { sampleIncidents, sampleZones, type MapSelection, type Shelter } from '../map/sampleData'
 
 // Vite's dev bundling breaks MapLibre's default worker path, so point it at the file directly.
 setWorkerUrl(workerUrl)
@@ -27,11 +27,12 @@ export function Icon({ name }: { name: keyof typeof icons }) {
 }
 
 type Props = {
+  shelters: Shelter[]
   selection: MapSelection | null
   onSelect: (selection: MapSelection) => void
 }
 
-export function ShelterMap({ selection, onSelect }: Props) {
+export function ShelterMap({  shelters, selection, onSelect }: Props) {
   const mapRef = useRef<MapRef>(null)
 
   // Move the camera whenever the selection changes, whether it came from the map or the side panel.
@@ -49,9 +50,9 @@ export function ShelterMap({ selection, onSelect }: Props) {
     }
     const item = selection.type === 'incident'
       ? sampleIncidents.find(i => i.id === selection.id)
-      : sampleShelters.find(s => s.id === selection.id)
+      : shelters.find(s => s.id === selection.id)
     if (item) map.flyTo({ center: [item.longitude, item.latitude], zoom: 14 })
-  }, [selection])
+  }, [selection, shelters])
 
   const isSelected = (type: MapSelection['type'], id: string) => selection?.type === type && selection.id === id
 
@@ -102,7 +103,7 @@ export function ShelterMap({ selection, onSelect }: Props) {
         </Marker>
       ))}
 
-      {sampleShelters.map(s => (
+      {shelters.map(s => (
         <Marker key={s.id} latitude={s.latitude} longitude={s.longitude}
           onClick={e => { e.originalEvent.stopPropagation(); onSelect({ type: 'shelter', id: s.id }) }}>
           <button type="button" className={`map-marker shelter ${s.status}${isSelected('shelter', s.id) ? ' selected' : ''}`} aria-label={`${s.name} (${s.status.replace('_', ' ')})`}>

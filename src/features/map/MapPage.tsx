@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useCommunitySession } from '../community/session'
 import { Icon, ShelterMap } from '../shelters/ShelterMap'
-import { sampleIncidents, sampleShelters, sampleZones, type MapSelection } from './sampleData'
+import { useShelters } from '../shelters/useShelters'
+import { sampleIncidents, sampleShelters, sampleZones, type MapSelection, type Shelter } from './sampleData'
 
 type MapTab = 'incidents' | 'shelters' | 'alerts'
 
@@ -47,7 +49,7 @@ function Row({ icon, tone, title, meta, active, onClick }: RowProps) {
   )
 }
 
-function Detail({ selection }: { selection: MapSelection }) {
+function Detail({ selection, shelters }: { selection: MapSelection; shelters: Shelter[] }) {
   if (selection.type === 'incident') {
     const i = sampleIncidents.find(x => x.id === selection.id)
     if (!i) return null
@@ -67,7 +69,7 @@ function Detail({ selection }: { selection: MapSelection }) {
   }
 
   if (selection.type === 'shelter') {
-    const s = sampleShelters.find(x => x.id === selection.id)
+    const s = shelters.find(x => x.id === selection.id)
     if (!s) return null
     return <>
       <div className="detail-head">
@@ -95,9 +97,17 @@ function Detail({ selection }: { selection: MapSelection }) {
   </>
 }
 
-export function MapPage() {
+export function MapPage({ city }: { city: string }) {
   const [tab, setTab] = useState<MapTab>('incidents')
   const [selection, setSelection] = useState<MapSelection | null>(null)
+  const { configured } = useCommunitySession()
+  const sheltersQuery = useShelters(city)
+
+  // Without Supabase settings, fall back to sample data so the demo still works offline.
+  const shelters = configured ? sheltersQuery.data ?? [] : sampleShelters
+  const fetchedAt = sheltersQuery.dataUpdatedAt
+    ? new Date(sheltersQuery.dataUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : null
 
   function select(next: MapSelection) {
     setSelection(next)
@@ -109,7 +119,7 @@ export function MapPage() {
   return (
     <div className="map-page">
       <section className="map-area" aria-label="Map">
-        <ShelterMap selection={selection} onSelect={select} />
+        <ShelterMap shelters={shelters} selection={selection} onSelect={select} />
         <div className="map-legend">
           <strong>Legend</strong>
           <span><i className="swatch order" />Evacuation order</span>
@@ -139,13 +149,13 @@ export function MapPage() {
         {selection && (
           <section className="map-card">
             <button type="button" className="back-link" onClick={() => setSelection(null)}>← Back to list</button>
-            <Detail selection={selection} />
+            <Detail selection={selection} shelters={shelters} />
           </section>
         )}
 
         <section className="map-card">
           {tab === 'incidents' && <>
-            <h2>All incidents near Santa Rosa</h2>
+            <h2>All incidents near {city}</h2>
             <ul className="map-list">
               {sampleIncidents.map(i => (
                 <Row key={i.id} icon={i.kind} tone={i.kind} title={i.title}
@@ -153,17 +163,33 @@ export function MapPage() {
                   active={isActive('incident', i.id)} onClick={() => select({ type: 'incident', id: i.id })} />
               ))}
             </ul>
+            <p className="muted map-source">Sample public data. Not an official emergency service.</p>
           </>}
 
           {tab === 'shelters' && <>
-            <h2>Shelters near Santa Rosa</h2>
+            <h2>Shelters near {city}</h2>
+            {configured && sheltersQuery.isPending && <p className="muted">Loading shelters…</p>}
+            {configured && sheltersQuery.isError && (
+              <div role="alert">
+                <p>Couldn't load shelters. Check your connection and try again.</p>
+                <button type="button" onClick={() => void sheltersQuery.refetch()}>Try again</button>
+              </div>
+            )}
+            {!(configured && (sheltersQuery.isPending || sheltersQuery.isError)) && shelters.length === 0 && (
+              <p className="muted">No shelters listed for {city} yet.</p>
+            )}
             <ul className="map-list">
-              {sampleShelters.map(s => (
+              {shelters.map(s => (
                 <Row key={s.id} icon="shelter" tone={s.status} title={s.name}
                   meta={`${statusLabel[s.status]} · ${timeAgo(s.updated_at)}`}
                   active={isActive('shelter', s.id)} onClick={() => select({ type: 'shelter', id: s.id })} />
               ))}
             </ul>
+            <p className="muted map-source">
+              {configured
+                ? `Source: Safety SAM shelter list${fetchedAt ? ` · Fetched ${fetchedAt}` : ''}`
+                : 'Sample shelters. Connect Supabase to load live data.'}
+            </p>
           </>}
 
           {tab === 'alerts' && <>
@@ -176,9 +202,8 @@ export function MapPage() {
                   active={isActive('zone', z.zone_id)} onClick={() => select({ type: 'zone', id: z.zone_id })} />
               ))}
             </ul>
+            <p className="muted map-source">Sample public data. Not an official emergency service.</p>
           </>}
-
-          <p className="muted map-source">Sample public data. Not an official emergency service.</p>
         </section>
       </aside>
     </div>
