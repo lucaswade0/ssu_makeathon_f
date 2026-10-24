@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterNews, incidentItems, isExpired, sampleEarthquake, sortNews, weatherItems, zoneItems, type NewsItem } from './newsItems'
+import { filterNews, incidentItems, isExpired, sortNews, weatherItems, zoneItems, type NewsItem } from './newsItems'
 
 const now = Date.parse('2026-10-24T18:00:00Z')
 
@@ -46,12 +46,6 @@ describe('news items', () => {
     expect(item).toMatchObject({ hazard: 'earthquake', title: 'M3.1 earthquake', sample: false })
     expect(item.summary).toContain('5 km W of Cobb, CA')
     expect(item.url).toContain('earthquake.usgs.gov')
-  })
-
-  it('marks the sample earthquake as sample data', () => {
-    const [item] = incidentItems([sampleEarthquake], true)
-    expect(item).toMatchObject({ hazard: 'earthquake', sample: true })
-    expect(item.source).toContain('Sample')
   })
 
   it('shows fire size with thousands separators and containment', () => {

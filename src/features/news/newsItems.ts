@@ -92,18 +92,6 @@ export function filterNews(items: NewsItem[], filter: 'all' | NewsHazard): NewsI
   return filter === 'all' ? items : items.filter(item => item.hazard === filter)
 }
 
-// Shown only in the sample scenario. Not a real event.
-export const sampleEarthquake: Incident = {
-  id: 'sample-quake-1',
-  kind: 'earthquake',
-  title: 'M3.1 earthquake',
-  location_text: '6 km NW of The Geysers, CA',
-  latitude: 38.81,
-  longitude: -122.83,
-  source: 'Sample data (USGS)',
-  updated_at: new Date(Date.now() - 90 * 60_000).toISOString(),
-}
-
 export function isExpired(item: NewsItem, now: number) {
   return item.expires !== null && Date.parse(item.expires) <= now
 }

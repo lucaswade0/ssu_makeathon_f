@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { NewsPage } from './NewsPage'
+import { deriveValue, idle, SimulationContext, simulationReducer } from '../simulation/context'
 
 const city = 'Santa Rosa'
 
@@ -84,5 +85,15 @@ describe('NewsPage', () => {
     })
     expect(html).toContain('Old flood watch')
     expect(html).toContain('Expired')
+  })
+
+  it('shows simulated updates, labeled as sample data, while the simulation runs', () => {
+    const machine = { ...simulationReducer(idle, { type: 'start', now: Date.now() }), index: 3 }
+    const client = new QueryClient()
+    const html = renderToString(<QueryClientProvider client={client}><SimulationContext.Provider value={deriveValue(machine, () => {})}><NewsPage city={city} /></SimulationContext.Provider></QueryClientProvider>).replaceAll('<!-- -->', '')
+    expect(html).toContain('Simulation running')
+    expect(html).toContain('Evacuation order · Zone SRO-E011')
+    expect(html).toContain('Sample data')
+    expect(html).not.toContain('Checking public sources')
   })
 })

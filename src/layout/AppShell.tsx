@@ -6,6 +6,8 @@ import {
 
 import { communityApi } from '../features/community/api'
 import { useCommunitySession } from '../features/community/session'
+import { SimulationBar } from '../features/simulation/SimulationBar'
+import { useSimulation } from '../features/simulation/context'
 import { nearestCoveredCity } from '../features/hazards/liveHazards'
 
 export type Page = 'feed' | 'news' | 'map' | 'resources' | 'sam' | 'signin'
@@ -141,8 +143,9 @@ type AppShellProps = {
 }
 
 export function AppShell({ page, onNavigate, city, onCityChange, children }: AppShellProps) {
+  const simulating = useSimulation().active
   return (
-    <div className="app">
+    <div className={`app${simulating ? ' sim-on' : ''}`}>
       <p className="disclaimer">
         Preparedness prototype, not an official emergency service. Community posts are unverified. In an emergency, call 911.
       </p>
@@ -173,6 +176,7 @@ export function AppShell({ page, onNavigate, city, onCityChange, children }: App
         </nav>
         <main className="app-main">{children}</main>
       </div>
+      <SimulationBar />
     </div>
   )
 }
