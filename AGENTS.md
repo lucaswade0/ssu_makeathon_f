@@ -86,6 +86,34 @@ When adding a new table or policy, include the relevant RLS policy in the same m
 
 Keep assistant responses constrained to general preparedness guidance for the selected disaster scenario (the assistant is named SAM in the interface). Responses must direct residents to official emergency instructions and emergency services when appropriate. Do not claim certainty about evacuation status, safety, or resource availability.
 
+## Public data sources
+
+Where the information shown in Safety SAM comes from. None of these are integrated yet; the demo uses seeded sample data (see "Demo data policy" below). Endpoints below were checked on 2026-10-24 and responded without a key unless noted. Confirm each source's terms of use before the final submission.
+
+| Source | Hazard | What we would use | Endpoint or docs | Access |
+| --- | --- | --- | --- | --- |
+| National Weather Service alerts API | Storm, flood, heat, winter weather, red flag | Active alerts by area or point, with issuing office, effective and expiry times | `https://api.weather.gov/alerts/active?area=CA` | No key. Requests need a descriptive `User-Agent` header, which browsers cannot set, so call it from a server or Edge Function or use a seeded snapshot. |
+| NIFC WFIGS wildfire incidents and perimeters | Wildfire | Current incident locations and fire perimeters (name, acres, containment, update time) | ArcGIS FeatureServer layers `WFIGS_Incident_Locations_Current` and `WFIGS_Interagency_Perimeters_Current` under `https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/` | No key. Query as GeoJSON with `f=geojson`. |
+| USGS earthquake feeds | Earthquake | Recent earthquakes with magnitude, place, and time | `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson` | No key. |
+| USGS Water Services | Flood | Stream gauge height and discharge for nearby gauges | `https://waterservices.usgs.gov/nwis/iv/` | No key. |
+| NASA FIRMS | Wildfire | Satellite active-fire detections, an optional layer | `https://firms.modaps.eosdis.nasa.gov/api/` | Free map key. Keep the key server-side. |
+| AirNow API | Wildfire smoke, air quality | Current air quality index by location, an optional layer | `https://docs.airnowapi.org/` | Free key. Keep the key server-side. |
+| OpenStreetMap data with a MapLibre-compatible tile provider | All | Base map | `VITE_MAP_STYLE_URL` | Show the OpenStreetMap and tile provider attribution. Do not use the public OSM tile servers for heavy traffic. |
+
+Not backed by an open feed we have verified:
+
+- Evacuation orders and warnings come from local county or city emergency agencies. For the demo they are seeded sample records labeled with a placeholder issuing agency, and the live version would link to the real agency's page.
+- Shelters have no single open national feed we rely on. The demo uses seeded official and verified sample records plus community submissions, which stay marked community-submitted until verified.
+- Official alert records in `official_alerts` are entered by responders. NWS alerts can be mirrored into that shape later, but they must keep the NWS source name and issued, effective, and expiry times.
+
+### Demo data policy
+
+- The five-minute demo must not depend on any live service. Ship a seeded snapshot of each source above in the same shape the live call would return, and fall back to it when a request fails.
+- Every item from a public source shows the source name and the fetch time, and expired or old data is labeled stale. Do not re-label public data as official Safety SAM content.
+- Seeded records are sample data. Mark them as such in the interface and never present them as a real, current event.
+- Keep API keys out of the browser and out of the repository. Fetch keyed or header-restricted sources from a server-side function, cache the response, and respect each provider's rate limits.
+- For presentation: show one slide or an in-app "Data sources" panel listing the sources above, which hazard each covers, and which are live versus seeded.
+
 ## External services
 
 Do not commit secrets. Copy .env.example to .env.local and provide values locally. Document public APIs, datasets, models, templates, and repositories used in the final submission.
