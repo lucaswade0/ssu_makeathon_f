@@ -3,6 +3,7 @@ import { BatteryCharging, Bus, Droplets, Flag, HeartPulse, House, PawPrint, Plus
 import { useCommunitySession } from '../community/session'
 import { cityCenter, hasLiveCoverage } from '../hazards/liveHazards'
 import { useSimulation } from '../simulation/context'
+import { checkResource } from './checks'
 import { addressFromMap } from './geocode'
 import { timeAgo } from './format'
 import { useCreateResource, useRemoveResource, useReportResource, useResources } from './hooks'
@@ -73,7 +74,7 @@ function ResourceCard({ resource, now, canReport, onSignIn }: { resource: Resour
 
 const LocationPicker = lazy(() => import('./LocationPicker'))
 
-export function AddResource({ city, onDone }: { city: string; onDone: () => void }) {
+export function AddResource({ city, existing, onDone }: { city: string; existing: Resource[]; onDone: () => void }) {
   const create = useCreateResource()
   const [category, setCategory] = useState<ResourceCategory>('water_food')
   const [title, setTitle] = useState('')
@@ -81,11 +82,16 @@ export function AddResource({ city, onDone }: { city: string; onDone: () => void
   const [location, setLocation] = useState('')
   const [addressEdited, setAddressEdited] = useState(false)
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null)
+  const [tried, setTried] = useState(false)
+  const [confirmedDuplicate, setConfirmedDuplicate] = useState(false)
   // Looking up the city center is only a starting view for the map; it is never stored as the pin.
   const center = hasLiveCoverage(city) ? cityCenter(city) : cityCenter('Santa Rosa')
+  const checks = pin ? checkResource({ category, title, description, city, latitude: pin.lat, longitude: pin.lng }, existing) : null
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (!pin) return
+    if (!pin || !checks) return
+    setTried(true)
+    if (checks.problems.length || (checks.duplicate && !confirmedDuplicate)) return
     try {
       await create.mutateAsync({ category, title, description, location_text: location, city, latitude: pin.lat, longitude: pin.lng })
       onDone()
@@ -108,6 +114,11 @@ export function AddResource({ city, onDone }: { city: string; onDone: () => void
     <label>Address or landmark<input value={location} onChange={e => { setLocation(e.target.value); setAddressEdited(e.target.value.trim() !== '') }} required maxLength={240} disabled={create.isPending} placeholder="Fills in as you place the pin. You can edit it." /></label>
     <div className="row"><button type="submit" disabled={create.isPending || !pin || !title.trim() || !description.trim() || !location.trim()}>{create.isPending ? 'Adding…' : 'Add resource'}</button><button type="button" disabled={create.isPending} onClick={onDone}>Cancel</button></div>
     {!pin && <p className="muted" role="status">Place a pin on the map to add this resource.</p>}
+    {tried && checks && checks.problems.length > 0 && <ul role="alert" className="error check-list">{checks.problems.map(p => <li key={p}>{p}</li>)}</ul>}
+    {tried && checks?.duplicate && <div role="alert" className="detail-warning">
+      <p>This looks like <strong>{checks.duplicate.title}</strong>, which is already listed here. Please don’t add the same place twice.</p>
+      <label className="check-confirm"><input type="checkbox" checked={confirmedDuplicate} onChange={e => setConfirmedDuplicate(e.target.checked)} />This is a different resource. Add it anyway.</label>
+    </div>}
     {create.isError && <p role="alert" className="error">{message(create.error)}</p>}
   </form>
 }
@@ -144,7 +155,7 @@ export function ResourcesPage({ city, onSignIn }: { city: string; onSignIn: () =
 
     {simulating && <p className="notice" role="status">Simulation running: these resources are sample data and open and close with the scenario. Adding and reporting are turned off.</p>}
     {!configured && !simulating && <p className="notice" role="status">Sample resources. Connect Supabase to load live data.</p>}
-    {adding && live && session && <AddResource city={city} onDone={() => setAdding(false)} />}
+    {adding && live && session && <AddResource city={city} existing={all} onDone={() => setAdding(false)} />}
 
     <label className="resource-filter">Show
       <select value={filter} onChange={e => setFilter(e.target.value as ResourceFilter)}>

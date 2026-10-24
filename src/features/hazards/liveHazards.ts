@@ -20,7 +20,7 @@ export const NO_COVERAGE = 'Live hazard data is only set up for Sonoma County ci
 const NEARBY_KM = 30
 
 // Flat-earth distance is accurate enough within tens of km.
-function distanceKm(lat: number, lng: number, center: { lat: number; lng: number }) {
+export function distanceKm(lat: number, lng: number, center: { lat: number; lng: number }) {
   const x = (lng - center.lng) * Math.cos(((lat + center.lat) / 2) * Math.PI / 180) * 111.32
   const y = (lat - center.lat) * 110.57
   return Math.hypot(x, y)
