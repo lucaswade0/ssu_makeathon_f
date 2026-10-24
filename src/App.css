@@ -217,3 +217,4 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 @media (prefers-reduced-motion: reduce) {
   .scenario-switch, .scenario-switch::after { transition: none; }
 }
+.locate-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; }

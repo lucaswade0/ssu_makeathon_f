@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
-  ChevronDown, HeartHandshake, MapPin, MapPinned,
+  ChevronDown, HeartHandshake, LocateFixed, MapPin, MapPinned,
   LogOut, MessageCircleQuestion, MessagesSquare, Newspaper, ShieldCheck, type LucideIcon,
 } from 'lucide-react'
 
 import { communityApi } from '../features/community/api'
 import { useCommunitySession } from '../features/community/session'
+import { nearestCoveredCity } from '../features/hazards/liveHazards'
 
 export type Page = 'feed' | 'news' | 'map' | 'resources' | 'sam' | 'signin'
 
@@ -20,6 +21,8 @@ const navItems: { id: Page; label: string; Icon: LucideIcon }[] = [
 function CityPicker({ city, onChange }: { city: string; onChange: (city: string) => void }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(city)
+  const [locating, setLocating] = useState(false)
+  const [locationNote, setLocationNote] = useState<string | null>(null)
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -29,15 +32,46 @@ function CityPicker({ city, onChange }: { city: string; onChange: (city: string)
     setOpen(false)
   }
 
+  // Asks for location once per click and keeps only the matched city name, never the coordinates.
+  function locate() {
+    if (!navigator.geolocation) {
+      setLocationNote('This browser can’t share your location. Type your city instead.')
+      return
+    }
+    setLocating(true)
+    setLocationNote(null)
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocating(false)
+        const match = nearestCoveredCity(coords.latitude, coords.longitude)
+        if (match) {
+          onChange(match)
+          setOpen(false)
+        } else {
+          setLocationNote('You’re not near a city with live data yet (only Santa Rosa in this demo). Type your city instead.')
+        }
+      },
+      () => {
+        setLocating(false)
+        setLocationNote('Location wasn’t shared. Type your city instead.')
+      },
+      { timeout: 10_000, maximumAge: 5 * 60_000 },
+    )
+  }
+
   return (
     <div className="city-picker">
-      <button type="button" className="city-button" aria-expanded={open} onClick={() => { setDraft(city); setOpen(!open) }}>
+      <button type="button" className="city-button" aria-expanded={open} onClick={() => { setDraft(city); setLocationNote(null); setOpen(!open) }}>
         <MapPin size={18} aria-hidden="true" />
         {city}
         <ChevronDown size={16} aria-hidden="true" />
       </button>
       {open && (
         <form className="city-popover" onSubmit={submit}>
+          <button type="button" className="locate-button" onClick={locate} disabled={locating}>
+            <LocateFixed size={16} aria-hidden="true" />{locating ? 'Finding your location…' : 'Use my location'}
+          </button>
+          {locationNote && <p role="status" className="muted">{locationNote}</p>}
           <label>City<input value={draft} onChange={e => setDraft(e.target.value)} maxLength={120} required autoFocus /></label>
           <button type="submit" disabled={!draft.trim()}>Show this city</button>
           <p className="muted">Used for this session only. Your location history is not saved.</p>
