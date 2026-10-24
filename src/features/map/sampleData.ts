@@ -38,9 +38,13 @@ export type Incident = {
 
 export type ZoneLevel = 'order' | 'warning'
 
+// Sets the zone's color on the map; 'other' covers zones whose hazard isn't reported.
+export type ZoneHazard = 'fire' | 'flood' | 'earthquake' | 'other'
+
 export type ZoneProperties = {
   zone_id: string
   level: ZoneLevel
+  hazard: ZoneHazard
   instructions: string
   source: string
   issued_at: string | null
@@ -146,6 +150,7 @@ export const sampleZones: ZoneCollection = {
       type: 'Feature',
       properties: {
         zone_id: 'SRO-E012',
+        hazard: 'fire',
         level: 'warning',
         instructions: 'Be ready to leave. Gather medications, documents, and pets.',
         source: 'Sample data (Sonoma County)',
@@ -163,6 +168,7 @@ export const sampleZones: ZoneCollection = {
       type: 'Feature',
       properties: {
         zone_id: 'SRO-E011',
+        hazard: 'fire',
         level: 'order',
         instructions: 'Leave now. Follow instructions from local officials.',
         source: 'Sample data (Sonoma County)',
@@ -181,6 +187,7 @@ export const sampleZones: ZoneCollection = {
       type: 'Feature',
       properties: {
         zone_id: 'PET-E102',
+        hazard: 'flood',
         level: 'warning',
         instructions: 'River levels are rising. Move to higher ground if you are near the river, and avoid flooded roads.',
         source: 'Sample data (Sonoma County)',
@@ -198,6 +205,7 @@ export const sampleZones: ZoneCollection = {
       type: 'Feature',
       properties: {
         zone_id: 'PET-E101',
+        hazard: 'flood',
         level: 'order',
         instructions: 'Leave now for higher ground. Do not drive through flooded streets. Follow instructions from local officials.',
         source: 'Sample data (Sonoma County)',

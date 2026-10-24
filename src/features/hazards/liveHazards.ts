@@ -185,13 +185,14 @@ const zoneResponseSchema = z.object({
       COUNTY: z.string().nullable(),
       EDIT_DATE: z.number().nullable(),
       PUBLIC_INFO: z.string().nullable(),
+      EVENT_TYPE: z.string().nullish(),
     }),
   })),
 })
 
 export async function fetchEvacuationZones(city: string): Promise<ZoneCollection> {
   const data = zoneResponseSchema.parse(await queryArea(CALOES_ZONES_URL, city, 'Evacuation zone', {
-    outFields: 'ZONE_ID,ZONE_NAME,STATUS,COUNTY,EDIT_DATE,PUBLIC_INFO',
+    outFields: 'ZONE_ID,ZONE_NAME,STATUS,COUNTY,EDIT_DATE,PUBLIC_INFO,EVENT_TYPE',
   }))
   return {
     type: 'FeatureCollection',
@@ -204,6 +205,7 @@ export async function fetchEvacuationZones(city: string): Promise<ZoneCollection
       const properties: ZoneProperties = {
         zone_id: p.ZONE_ID,
         level,
+        hazard: /flood/i.test(p.EVENT_TYPE ?? '') ? 'flood' : /quake/i.test(p.EVENT_TYPE ?? '') ? 'earthquake' : /fire/i.test(p.EVENT_TYPE ?? '') ? 'fire' : 'other',
         instructions: p.PUBLIC_INFO ?? `${p.STATUS}${p.ZONE_NAME ? ` for ${p.ZONE_NAME}` : ''}. Follow instructions from local officials.`,
         source: `Cal OES${p.COUNTY ? ` (${titleCase(p.COUNTY)} County)` : ''}`,
         issued_at: p.EDIT_DATE === null ? null : new Date(p.EDIT_DATE).toISOString(),

@@ -1,4 +1,5 @@
 import Map, { Layer, Marker, NavigationControl, Source, type MapRef } from 'react-map-gl/maplibre'
+import type { ExpressionSpecification } from '@maplibre/maplibre-gl-style-spec'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useRef } from 'react'
 import { setWorkerUrl } from 'maplibre-gl'
@@ -22,6 +23,10 @@ export function Icon({ name, size = 20 }: { name: keyof typeof icons; size?: num
   const Glyph = icons[name]
   return <Glyph size={size} aria-hidden="true" />
 }
+
+// Zone color follows the hazard; order vs warning is shown by solid vs dashed outline and fill strength.
+// MapLibre paints these itself, so they are hex values, not CSS variables.
+const hazardColor: ExpressionSpecification = ['match', ['get', 'hazard'], 'fire', '#C2410C', 'flood', '#1D4ED8', 'earthquake', '#7C4A1E', '#B42318']
 
 type Props = {
   shelters: Shelter[]
@@ -87,21 +92,21 @@ export function ShelterMap({ shelters, incidents, zones, perimeters, center, sel
           id="zone-fill"
           type="fill"
           paint={{
-            'fill-color': ['match', ['get', 'level'], 'order', '#B42318', '#D97706'],
-            'fill-opacity': ['match', ['get', 'level'], 'order', 0.3, 0.2],
+            'fill-color': hazardColor,
+            'fill-opacity': ['match', ['get', 'level'], 'order', 0.35, 0.15],
           }}
         />
         <Layer
           id="zone-warning-line"
           type="line"
           filter={['==', ['get', 'level'], 'warning']}
-          paint={{ 'line-color': '#B45309', 'line-width': 2.5, 'line-dasharray': [3, 2] }}
+          paint={{ 'line-color': hazardColor, 'line-width': 2.5, 'line-dasharray': [3, 2] }}
         />
         <Layer
           id="zone-order-line"
           type="line"
           filter={['==', ['get', 'level'], 'order']}
-          paint={{ 'line-color': '#B42318', 'line-width': 2.5 }}
+          paint={{ 'line-color': hazardColor, 'line-width': 3 }}
         />
       </Source>
 
