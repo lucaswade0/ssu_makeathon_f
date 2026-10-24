@@ -53,3 +53,15 @@ footer { border-top: 1px solid #cbd0d6; padding: 18px 0 28px; font-size: 12px; c
   .layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .panel { padding: 16px; }
 }
+.map-page { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; margin-bottom: 28px; }
+.map-area { height: 70vh; min-height: 420px; border: 1px solid #d0d4d9; border-radius: 16px; overflow: hidden; }
+.map-panel { display: flex; flex-direction: column; gap: 16px; }
+.map-tabs { display: flex; gap: 4px; padding: 4px; background: #fff; border: 1px solid #e3e5e8; border-radius: 12px; }
+.map-tabs button { flex: 1; min-height: 44px; border: 0; border-radius: 8px; background: transparent; color: #1d2125; font-weight: 600; }
+.map-tabs button[aria-selected='true'] { background: #1d2125; color: #fff; }
+.map-card { padding: 20px; background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; }
+
+@media (max-width: 900px) {
+  .map-page { grid-template-columns: 1fr; }
+  .map-area { height: 60vh; }
+}

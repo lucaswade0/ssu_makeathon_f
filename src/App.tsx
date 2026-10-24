@@ -4,6 +4,7 @@ import { communityApi } from './features/community/api'
 import { useCommunityFeed, useOfficialAlert, usePostMutation, usePostReplies, useReplyMutation } from './features/community/hooks'
 import { useCommunitySession } from './features/community/session'
 import type { CommunityPost, CommunityReply } from './features/community/schemas'
+import { MapPage } from './features/map/MapPage'
 import './App.css'
 
 function ErrorMessage({ error }: { error: unknown }) {
@@ -230,6 +231,7 @@ function App() {
     <header><h1>Safety SAM</h1><p>Community feed for local disasters</p></header>
     <main>
       <p className="intro">Local updates and questions, with official instructions shown separately.</p>
+      <MapPage />
       <div className="layout">
         <aside>
           <section className="panel" aria-labelledby="city-heading">
