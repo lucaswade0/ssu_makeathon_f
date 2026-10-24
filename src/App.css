@@ -382,3 +382,8 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 .alert-modal .official-link { background: var(--sev); color: var(--sev-on); }
 .alert-modal .alert-facts dd a { color: var(--sev-ink); }
 .official-card.expired { --sev: var(--muted); --sev-soft: var(--surface); --sev-border: var(--border); --sev-ink: var(--muted); }
+
+.check-list { margin: 0; padding-left: 20px; }
+.check-list li { margin: 2px 0; }
+.check-confirm { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-weight: 600; }
+.check-confirm input { width: auto; }

@@ -97,7 +97,7 @@ describe('ResourcesPage', () => {
 
   it('asks for a map pin when adding a resource and blocks submitting without one', () => {
     const client = new QueryClient()
-    const html = renderToString(<QueryClientProvider client={client}><AddResource city={city} onDone={() => {}} /></QueryClientProvider>).replaceAll('<!-- -->', '')
+    const html = renderToString(<QueryClientProvider client={client}><AddResource city={city} existing={[]} onDone={() => {}} /></QueryClientProvider>).replaceAll('<!-- -->', '')
     expect(html).toContain('Where is it?')
     expect(html).toContain('Place a pin on the map to add this resource')
     expect(html).toMatch(/<button[^>]*disabled[^>]*>Add resource<\/button>|<button[^>]*type="submit"[^>]*disabled/)
