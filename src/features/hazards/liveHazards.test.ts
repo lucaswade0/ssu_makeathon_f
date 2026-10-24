@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchEvacuationZones } from './liveHazards'
+import { fetchEvacuationZones, nearestCoveredCity } from './liveHazards'
+
+describe('nearestCoveredCity', () => {
+  it('matches locations within 30 km of Santa Rosa only', () => {
+    expect(nearestCoveredCity(38.4022, -122.8239)).toBe('Santa Rosa') // Sebastopol, ~10 km
+    expect(nearestCoveredCity(38.8055, -123.0172)).toBeNull() // Cloverdale, ~48 km
+    expect(nearestCoveredCity(36.7378, -119.7871)).toBeNull() // Fresno
+  })
+})
 
 const square = [[[-122.7, 38.4], [-122.6, 38.4], [-122.6, 38.5], [-122.7, 38.4]]]
 

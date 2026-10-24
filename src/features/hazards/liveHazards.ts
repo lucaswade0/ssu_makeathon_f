@@ -12,6 +12,18 @@ const cityCenters: Record<string, { lat: number; lng: number }> = {
 
 export const NO_COVERAGE = 'Live hazard data is only set up for Santa Rosa in this demo.'
 
+const NEARBY_KM = 30
+
+// Matches a browser location to a covered city. Flat-earth distance is accurate enough within tens of km.
+export function nearestCoveredCity(lat: number, lng: number): string | null {
+  for (const [name, center] of Object.entries(cityCenters)) {
+    const x = (lng - center.lng) * Math.cos(((lat + center.lat) / 2) * Math.PI / 180) * 111.32
+    const y = (lat - center.lat) * 110.57
+    if (Math.hypot(x, y) <= NEARBY_KM) return name
+  }
+  return null
+}
+
 export function hasLiveCoverage(city: string) {
   return Object.hasOwn(cityCenters, city.trim())
 }
