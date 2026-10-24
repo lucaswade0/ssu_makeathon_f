@@ -4,7 +4,7 @@ Localized wildfire preparedness and community communication prototype.
 
 ## Current status
 
-The repository contains the React/Vite infrastructure scaffold and the first Supabase migration. The frontend is intentionally a neutral starter screen so the product team can build the UI independently.
+The repository includes an initial functional community feed page, Supabase integration, and database migrations. The interface is deliberately simple for testing the core flow.
 
 Read AGENTS.md before making changes. It contains the shared product decisions, safety guardrails, database rules, and handoff checklist for teammates and coding agents.
 
@@ -46,18 +46,18 @@ It creates:
 
 The feed is city-scoped using the user's current session location. Official alerts are instruction-only and pinned above chronological community posts. Shelters are a separate map feature and are not automatically created from feed posts.
 
-The migration has not been applied to a hosted Supabase project yet. Do not edit an applied migration; create a new timestamped migration for follow-up changes.
+Apply the migrations to your linked Supabase project before using the live feed. Do not edit an applied migration; create a new timestamped migration for follow-up changes.
 
-## Community chat integration
+## Community feed integration
 
-The first chat increment is the Supabase data and React integration layer. The visible app remains the starter screen for the frontend team. `src/main.tsx` wraps the app in `CommunityProvider`, which restores the auth session and supplies TanStack Query caching.
+The initial page provides manual city selection, email-link sign-in, chronological text posts, one-level replies, owner edit/delete controls, and a separate official-alert panel. It also has a read-only sample view for offline previews. `src/main.tsx` wraps the app in `CommunityProvider`, which restores the auth session and supplies TanStack Query caching.
 
 Setup for a shared Supabase project (coordinate with the team before applying migrations):
 
 1. Apply the initial migration, then `supabase/migrations/20261024000000_private_profile_defaults.sql`. The follow-up migration stops deriving public names from email addresses for future signups and adds pagination indexes. Existing profile names are preserved; review older email-derived names privately before a public demo.
 2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` to the project's URL and public anon/publishable key. Never use a service-role or secret key in the browser.
 3. Enable email magic-link sign-in and allow the app's origin and pathname in Supabase Auth redirect URLs (for local development, normally `http://localhost:5173/`).
-4. Start the app with `npm run dev`. Without both environment variables, chat queries stay disabled and the starter still loads. The session hook exposes `configured: false` so the UI can show setup/demo status explicitly.
+4. Start the app with `npm run dev`. Without both environment variables, live queries stay disabled and the sample feed remains available. The session hook exposes `configured: false` so the UI can show setup/demo status explicitly.
 
 Frontend entry points:
 
@@ -72,9 +72,9 @@ Use the same canonical city string for all data sources and the city selector; d
 
 Queries refresh every 30 seconds while the page is active and on window focus; this increment does not enable Supabase Realtime. Render query/mutation errors and loading, empty, and stale states explicitly. Failed reads are errors, not fake empty feeds. Use `dataUpdatedAt` and the row timestamps when labeling freshness. Only public profile IDs and display names are joined into posts and replies.
 
-Pending work: the chat interface and sign-in form, city detection/manual selection, seeded offline demonstration data, photo upload/storage policies and deletion cleanup, resource reporting, and hosted end-to-end/RLS validation. New posts in this increment are text-only; existing `photo_paths` are returned as metadata, and this client does not manage storage objects. Do not enable attachments until their lifecycle is implemented. Database reply cascade deletion is already provided by the initial migration.
+Pending work: browser city detection, photo upload/storage policies and deletion cleanup, resource reporting, and hosted end-to-end/RLS validation. New posts in this increment are text-only; existing `photo_paths` are returned as metadata, and this client does not manage storage objects. Do not enable attachments until their lifecycle is implemented. Database reply cascade deletion is already provided by the initial migration.
 
-Run `npm test`, `npm run build`, and `npm run lint` before handing off changes. API tests use a mocked client to check validation, ownership scoping, pagination, and error behavior; they do not validate hosted RLS or deliver real sign-in emails. Supabase client reference: https://supabase.com/docs/reference/javascript/initializing.
+Run `npm test`, `npm run build`, and `npm run lint` before handing off changes. API tests use a mocked client to check validation, ownership scoping, pagination, and error behavior; they do not validate hosted RLS or deliver real sign-in emails. Run `npm run test:e2e` for browser flow tests (install a Playwright Chromium browser first with `npx playwright install chromium`, or set `CHROMIUM_PATH` to an installed Chromium executable). Browser tests use a separate app on port 5174 with a fake Supabase URL and intercepted responses; they never send real emails or write to the hosted database. Supabase client reference: https://supabase.com/docs/reference/javascript/initializing.
 
 ## Team workflow
 
