@@ -181,7 +181,7 @@ const samplePosts: CommunityPost[] = [{
   author: { id: '00000000-0000-4000-8000-000000000002', display_name: 'Sample resident' },
 }]
 
-function Feed({ city, sample, onOpenMap }: { city: string; sample: boolean; onOpenMap: () => void }) {
+function Feed({ city, sample, onOpenMap, onToggleSample }: { city: string; sample: boolean; onOpenMap: () => void; onToggleSample: () => void }) {
   const { session, configured } = useCommunitySession()
   const feed = useCommunityFeed(sample ? '' : city)
   const alert = useOfficialAlert(sample ? '' : city)
@@ -234,7 +234,7 @@ function Feed({ city, sample, onOpenMap }: { city: string; sample: boolean; onOp
         <button type="button" onClick={onOpenMap}>View map</button>
         <span className="muted">Sample public data</span>
       </div>
-      {session && configured ? <PostComposer key={session.user.id} city={city} /> : <p className="muted">Read community posts below. Sign in to publish a post or reply.</p>}
+      {session && configured ? <PostComposer key={session.user.id} city={city} /> : <Account />}
       {configured && feed.isPending && <p role="status">Loading community posts…</p>}
       {feed.isError && <section className="panel"><h3>Couldn’t load the feed</h3><ErrorMessage error={feed.error} /><p>Check your connection. If this is a new project, make sure the database migrations have been applied.</p><button onClick={() => void refresh()}>Try again</button></section>}
       {feed.isError && posts.length > 0 && <p className="error">Showing previously loaded posts. They may be out of date.</p>}
@@ -242,6 +242,8 @@ function Feed({ city, sample, onOpenMap }: { city: string; sample: boolean; onOp
     </>}
     <div className="posts">{posts.map(post => <PostCard key={post.id} post={post} sample={sample} />)}</div>
     {!sample && feed.hasNextPage && <button disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>{feed.isFetchingNextPage ? 'Loading…' : 'Load older posts'}</button>}
+    {!sample && session && <Account />}
+    <button className="mode-button" onClick={onToggleSample}>{sample ? 'Back to live feed' : 'View sample feed'}</button>
     {!sample && feed.dataUpdatedAt > 0 && <p className="muted">Last checked <Timestamp value={new Date(feed.dataUpdatedAt).toISOString()} /> · Updates every 30 seconds.</p>}
   </>
 }
@@ -252,13 +254,7 @@ function App() {
   const [sample, setSample] = useState(false)
 
   return <AppShell page={page} onNavigate={setPage} city={city} onCityChange={setCity}>
-    {page === 'feed' && <div className="layout">
-      <aside>
-        {!sample && <Account />}
-        <button className="mode-button" onClick={() => setSample(!sample)}>{sample ? 'Back to live feed' : 'View sample feed'}</button>
-      </aside>
-      <section className="feed" aria-label="Community feed"><Feed key={`${city}-${sample}`} city={city} sample={sample} onOpenMap={() => setPage('map')} /></section>
-    </div>}
+    {page === 'feed' && <section className="feed" aria-label="Community feed"><Feed key={`${city}-${sample}`} city={city} sample={sample} onOpenMap={() => setPage('map')} onToggleSample={() => setSample(!sample)} /></section>}
     {page === 'map' && <MapPage city={city} />}
     {page === 'news' && <ComingSoon title="News" text="Local news and public data summaries will appear here." />}
     {page === 'resources' && <ComingSoon title={`Resources in ${city}`} text="Shelters and supplies, labeled by who confirmed them. Coming in the next update." />}
