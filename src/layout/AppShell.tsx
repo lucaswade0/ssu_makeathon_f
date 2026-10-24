@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import {
-  ChevronDown, HeartHandshake, LifeBuoy, MapPin, MapPinned,
-  MessageCircleQuestion, MessagesSquare, Newspaper, type LucideIcon,
+  ChevronDown, HeartHandshake, MapPin, MapPinned,
+  MessageCircleQuestion, MessagesSquare, Newspaper, ShieldCheck, type LucideIcon,
 } from 'lucide-react'
 
 export type Page = 'feed' | 'news' | 'map' | 'resources' | 'sam' | 'signin'
@@ -61,13 +61,13 @@ export function AppShell({ page, onNavigate, city, onCityChange, children }: App
 
       <header className="app-header">
         <button type="button" className="brand" onClick={() => onNavigate('feed')}>
-          <LifeBuoy size={28} aria-hidden="true" />
+          <ShieldCheck size={34} aria-hidden="true" />
           <span>Safety SAM</span>
         </button>
         <CityPicker city={city} onChange={onCityChange} />
       </header>
 
-      <div className="app-body">
+      <div className={`app-body${page === 'map' ? ' compact' : ''}`}>
         <nav className="nav-rail" aria-label="Main">
           <ul>
             {navItems.map(({ id, label, Icon }) => (

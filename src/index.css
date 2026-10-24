@@ -1,26 +1,29 @@
 :root {
   /* Brand */
-  --brand: #0f4c5c;
-  --brand-soft: #d8ecea;
-  --accent: #c4452b;
-  --accent-hover: #a8381f;
-  --accent-soft: #fbe3dc;
+  --brand: #1d2125;
+  --brand-soft: #fdf1cc;
+  --accent: #f7b91f;
+  --accent-hover: #e0a410;
+  --accent-soft: #fdf1cc;
 
   /* Surfaces and text */
-  --bg: #f4f7f6;
+  --bg: #f2f3f5;
   --surface: #ffffff;
-  --border: #dde5e3;
-  --text: #16252b;
-  --muted: #4e5f66;
+  --border: #e3e5e8;
+  --text: #1d2125;
+  --muted: #4b545d;
 
-  /* Meaning colors:*/
+  /* Meaning colors */
   --order: #b42318;
   --order-soft: #fdecea;
   --warning: #d97706;
   --warning-soft: #fef3c7;
-  --official: #1e3a8a;
-  --verified: #15803d;
-  --community: #4e5f66;
+  --official: #1856b8;
+  --official-soft: #e8f0fc;
+  --official-border: #b8cdf0;
+  --verified: #1f7a3e;
+  --community: #4b545d;
+  --fire: #c2410c;
 
   font-family: Inter, system-ui, sans-serif;
   color: var(--text);
