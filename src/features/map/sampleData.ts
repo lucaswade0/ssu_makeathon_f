@@ -163,3 +163,6 @@ export const sampleZones: FeatureCollection<Polygon, ZoneProperties> = {
     },
   ],
 }
+
+// What the user has picked on the map or in the side panel.
+export type MapSelection = { type: 'incident' | 'shelter' | 'zone'; id: string }
