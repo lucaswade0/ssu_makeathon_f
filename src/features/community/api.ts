@@ -3,9 +3,9 @@ import { z } from 'zod'
 import { requireSupabase } from '../../lib/supabase'
 import {
   alertSchema, citySchema, cursorSchema, displayNameSchema, idSchema,
-  postEditSchema, postInputSchema, postSchema, replyInputSchema, replySchema,
+  postEditSchema, postInputSchema, postSchema, postTypeSchema, replyInputSchema, replySchema,
 } from './schemas'
-import type { FeedCursor, PostEdit, PostInput } from './schemas'
+import type { FeedCursor, PostEdit, PostInput, PostType } from './schemas'
 
 const passwordSchema = z.string().min(8, 'Use at least 8 characters.').max(72)
 
@@ -57,12 +57,14 @@ export function createCommunityApi(getClient: () => SupabaseClient = requireSupa
       return data
     },
 
-    async listPosts(city: string, cursor?: FeedCursor, pageSize = 30) {
+    async listPosts(city: string, cursor?: FeedCursor, pageSize = 30, postType?: PostType) {
       const selectedCity = citySchema.parse(city)
       const size = z.number().int().min(1).max(50).parse(pageSize)
+      const type = postType ? postTypeSchema.parse(postType) : undefined
       let query = getClient().from('posts').select(postSelect)
         .eq('city', selectedCity).order('created_at', { ascending: false })
         .order('id', { ascending: false }).limit(size + 1)
+      if (type) query = query.eq('post_type', type)
       if (cursor) {
         const after = cursorSchema.parse(cursor)
         query = query.or(`created_at.lt.${after.created_at},and(created_at.eq.${after.created_at},id.lt.${after.id})`)

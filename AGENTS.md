@@ -25,6 +25,7 @@ Build a polished, dependable demonstration for one selected location and one sel
 - Do not rewrite or delete an existing migration. Add a new timestamped migration for schema changes.
 - Keep commits focused and explain database, security, or behavior changes in the commit message.
 - Run npm run build and npm run lint before handoff.
+- Write tests for every feature you add. A feature is not done until it has tests that cover its main behavior, its empty, error, and invalid-input cases, and any data shape shared with other code. Add a regression test for every bug you fix.
 - Run npm test before every push. All tests must pass before you push. Do not push with a failing test, and do not skip, delete, or weaken a test to make it pass. Fix the code or the test for a real reason. Add or update tests for any behavior you change.
 - Tell the next contributor what changed, what was validated, and what remains blocked.
 
@@ -132,6 +133,7 @@ Do not commit secrets. Copy .env.example to .env.local and provide values locall
 - npm run build passes.
 - npm run lint passes.
 - npm test passes with no failing or skipped tests.
+- Every new feature has tests.
 - Official and community information are visually distinct.
 - Timestamps and source attribution are present.
 - Loading, empty, error, and stale-data states are considered.

@@ -3,7 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { communityApi } from './api'
 import { supabase } from '../../lib/supabase'
 import { useCommunitySession } from './session'
-import type { FeedCursor, PostEdit, PostInput } from './schemas'
+import type { FeedCursor, PostEdit, PostInput, PostType } from './schemas'
 
 // Refetch when another resident changes a table. Polling stays on as a fallback if the socket drops.
 function useRealtimeInvalidate(table: 'posts' | 'post_replies', channelName: string, queryKey: readonly unknown[], enabled: boolean, matches?: (row: Record<string, unknown>) => boolean) {
@@ -23,15 +23,15 @@ function useRealtimeInvalidate(table: 'posts' | 'post_replies', channelName: str
   }, [client, table, channelName, keyString, enabled])
 }
 
-export function useCommunityFeed(city: string) {
+export function useCommunityFeed(city: string, postType?: PostType) {
   const { configured } = useCommunitySession()
   const selectedCity = city.trim()
   useRealtimeInvalidate('posts', `feed-posts:${selectedCity}`, ['community', 'posts', selectedCity], configured && Boolean(selectedCity),
     row => row.city === selectedCity)
   return useInfiniteQuery({
-    queryKey: ['community', 'posts', selectedCity],
+    queryKey: ['community', 'posts', selectedCity, postType ?? 'all'],
     initialPageParam: undefined as FeedCursor | undefined,
-    queryFn: ({ pageParam }) => communityApi.listPosts(selectedCity, pageParam),
+    queryFn: ({ pageParam }) => communityApi.listPosts(selectedCity, pageParam, undefined, postType),
     getNextPageParam: (page) => page.nextCursor,
     enabled: configured && Boolean(selectedCity),
     refetchInterval: 30_000,

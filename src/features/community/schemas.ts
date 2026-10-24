@@ -61,4 +61,5 @@ export type CommunityReply = z.infer<typeof replySchema>
 export type OfficialAlert = z.infer<typeof alertSchema>
 export type PostInput = z.input<typeof postInputSchema>
 export type PostEdit = z.input<typeof postEditSchema>
+export type PostType = z.infer<typeof postTypeSchema>
 export type FeedCursor = z.infer<typeof cursorSchema>

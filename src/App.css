@@ -280,3 +280,7 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
   .composer { padding: 16px; gap: 12px; }
   .composer-input { font-size: 18px; }
 }
+
+.post-filter { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
+.post-filter .type-chip { min-height: 44px; padding: 0 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.post-filter .type-chip[aria-checked='true'] { border-color: var(--text); background: var(--text); color: #fff; }

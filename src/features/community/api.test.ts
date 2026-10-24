@@ -85,6 +85,24 @@ describe('community API boundaries', () => {
     expect(query.or).toHaveBeenCalledWith(`created_at.lt.${timestamp},and(created_at.eq.${timestamp},id.lt.${postId})`)
   })
 
+  it('filters the feed by post type on the server', async () => {
+    const { api, query } = setup({ data: [], error: null })
+    await api.listPosts('Santa Rosa', undefined, 30, 'question')
+    expect(query.eq).toHaveBeenCalledWith('post_type', 'question')
+  })
+
+  it('does not filter by type when no type is chosen', async () => {
+    const { api, query } = setup({ data: [], error: null })
+    await api.listPosts('Santa Rosa')
+    expect(query.eq).not.toHaveBeenCalledWith('post_type', expect.anything())
+  })
+
+  it('rejects an unknown post type before contacting the backend', async () => {
+    const { api, client } = setup()
+    await expect(api.listPosts('Santa Rosa', undefined, 30, 'rumor' as never)).rejects.toThrow()
+    expect(client.from).not.toHaveBeenCalled()
+  })
+
   it('rejects filter injection in cursor fields', async () => {
     const { api, query } = setup()
     await expect(api.listPosts('Santa Rosa', { id: 'bad),city.neq.foo', created_at: timestamp })).rejects.toThrow()

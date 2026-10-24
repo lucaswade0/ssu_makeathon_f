@@ -4,7 +4,7 @@ import { BadgeCheck, CircleHelp, ExternalLink, Megaphone, MessageCircle, Message
 import { communityApi } from './features/community/api'
 import { useCommunityFeed, useOfficialAlert, usePostMutation, usePostReplies, useReplyMutation } from './features/community/hooks'
 import { useCommunitySession } from './features/community/session'
-import type { CommunityPost, CommunityReply } from './features/community/schemas'
+import type { CommunityPost, CommunityReply, PostType } from './features/community/schemas'
 import { hasLiveCoverage, NO_COVERAGE, useEarthquakes, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
 import { MapPage } from './features/map/MapPage'
 import { NewsPage } from './features/news/NewsPage'
@@ -79,6 +79,13 @@ function SignInPage({ onBack }: { onBack: () => void }) {
     <Account />
   </div>
 }
+
+const postFilters = [
+  { id: 'all', label: 'All' },
+  { id: 'update', label: 'Updates' },
+  { id: 'question', label: 'Questions' },
+  { id: 'general', label: 'General' },
+] as const
 
 const postTypes = [
   { id: 'update', label: 'Update', Icon: Megaphone },
@@ -228,12 +235,13 @@ const samplePosts: CommunityPost[] = [{
 
 function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: string; sample: boolean; onOpenMap: () => void; onToggleSample: () => void; onSignIn: () => void }) {
   const { session, configured } = useCommunitySession()
-  const feed = useCommunityFeed(sample ? '' : city)
+  const [typeFilter, setTypeFilter] = useState<'all' | PostType>('all')
+  const feed = useCommunityFeed(sample ? '' : city, typeFilter === 'all' ? undefined : typeFilter)
   const alert = useOfficialAlert(sample ? '' : city)
   const fires = useFireIncidents(city)
   const quakes = useEarthquakes(city)
   const weather = useWeatherAlerts(city)
-  const posts = sample ? samplePosts : feed.data?.pages.flatMap(page => page.posts) || []
+  const posts = sample ? samplePosts.filter(post => typeFilter === 'all' || post.post_type === typeFilter) : feed.data?.pages.flatMap(page => page.posts) || []
   const [refreshing, setRefreshing] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -292,8 +300,12 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
       {configured && feed.isPending && <p role="status">Loading community posts…</p>}
       {feed.isError && <section className="panel"><h3>Couldn’t load the feed</h3><ErrorMessage error={feed.error} /><p>Check your connection. If this is a new project, make sure the database migrations have been applied.</p><button onClick={() => void refresh()}>Try again</button></section>}
       {feed.isError && posts.length > 0 && <p className="error">Showing previously loaded posts. They may be out of date.</p>}
-      {feed.isSuccess && !posts.length && <div className="panel"><h3>No community posts yet</h3><p>Be the first to share an update or ask a question in {city}.</p></div>}
+      {feed.isSuccess && !posts.length && <div className="panel"><h3>{typeFilter === 'all' ? 'No community posts yet' : `No ${typeFilter} posts yet`}</h3><p>{typeFilter === 'all' ? `Be the first to share an update or ask a question in ${city}.` : `Try another filter, or be the first to post one in ${city}.`}</p></div>}
     </>}
+    {(sample || configured) && <div className="post-filter" role="radiogroup" aria-label="Filter posts by type">
+      {postFilters.map(({ id, label }) => <button key={id} type="button" role="radio" aria-checked={typeFilter === id} className="type-chip" onClick={() => setTypeFilter(id)}>{label}</button>)}
+    </div>}
+    {sample && !posts.length && <p className="muted">No sample {typeFilter} posts.</p>}
     <div className="posts">{posts.map(post => <PostCard key={post.id} post={post} sample={sample} onSignIn={onSignIn} />)}</div>
     {!sample && feed.hasNextPage && <button disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>{feed.isFetchingNextPage ? 'Loading…' : 'Load older posts'}</button>}
     {!sample && feed.dataUpdatedAt > 0 && <p className="muted">Last checked <Timestamp value={new Date(feed.dataUpdatedAt).toISOString()} /> · Updates every 30 seconds.</p>}
