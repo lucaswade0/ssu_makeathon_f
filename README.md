@@ -23,7 +23,7 @@ Copy .env.example to .env.local for local environment values. Never commit secre
 ## Architecture
 
 - React, TypeScript, and Vite for the frontend.
-- Supabase Auth with magic-link sign-in.
+- Supabase Auth with email and password sign-in.
 - Supabase Postgres for profiles, feed posts, replies, official alerts, and shelters.
 - Supabase Storage for post photos.
 - MapLibre GL JS / react-map-gl for the shelter map.
@@ -56,12 +56,12 @@ Setup for a shared Supabase project (coordinate with the team before applying mi
 
 1. Apply the initial migration, then `supabase/migrations/20261024000000_private_profile_defaults.sql`. The follow-up migration stops deriving public names from email addresses for future signups and adds pagination indexes. Existing profile names are preserved; review older email-derived names privately before a public demo.
 2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local` to the project's URL and public anon/publishable key. Never use a service-role or secret key in the browser.
-3. Enable email magic-link sign-in and allow the app's origin and pathname in Supabase Auth redirect URLs (for local development, normally `http://localhost:5173/`).
+3. Enable the email provider in Supabase Auth. For the demo, turn off "Confirm email" so new accounts can sign in immediately.
 4. Start the app with `npm run dev`. Without both environment variables, live queries stay disabled and the sample feed remains available. The session hook exposes `configured: false` so the UI can show setup/demo status explicitly.
 
 Frontend entry points:
 
-- `communityApi` in `src/features/community/api.ts`: `signIn(email, displayName)`, `signOut()`, `updateDisplayName(name)`, and validated text-post/reply create, edit, delete, and read operations. All writes derive ownership from the authenticated user; database RLS enforces access. Sign-in metadata initializes a new user's public name; returning users change it through `updateDisplayName`.
+- `communityApi` in `src/features/community/api.ts`: `signUp(email, password, displayName)`, `signIn(email, password)`, `signOut()`, `updateDisplayName(name)`, and validated text-post/reply create, edit, delete, and read operations. All writes derive ownership from the authenticated user; database RLS enforces access. Sign-up metadata initializes a new user's public name; returning users change it through `updateDisplayName`.
 - `useCommunitySession()` in `session.ts`: `session`, `loading`, `error`, and `configured`. Use `session.user.id` for ownership controls; never render the private email in a post author label.
 - `useCommunityFeed(city)`: newest-first post pages with `data.pages[].posts`, `hasNextPage`, and `fetchNextPage()`.
 - `usePostReplies(postId)`: oldest-first reply pages with `data.pages[].replies`. Replies belong directly to posts, not to other replies or official alerts.

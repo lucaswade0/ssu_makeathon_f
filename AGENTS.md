@@ -35,7 +35,7 @@ Run npm install, npm run dev, npm run build, npm run lint, or npm run preview as
 
 - Keep changes narrow and easy to review.
 - Prefer TypeScript and existing dependencies.
-- Do not add authentication, precise location tracking, emergency dispatch, or custom hazard-spread or impact prediction (for example fire spread or flood modeling) to the MVP.
+- Do not add authentication beyond the Supabase email and password decision below, precise location tracking, emergency dispatch, or custom hazard-spread or impact prediction (for example fire spread or flood modeling) to the MVP.
 - Use seeded or fallback data so the five-minute demo does not depend on an unreliable external service.
 - Keep public data source names and timestamps visible.
 - Use a selected demonstration area; do not store personal location history.
@@ -50,7 +50,7 @@ Use status values that clearly distinguish official, verified, and community. In
 
 ## Supabase product decisions
 
-- Use Supabase Auth with magic-link email sign-in.
+- Use Supabase Auth with email and password sign-in (changed from magic links; no email is sent to sign in). Turn off "Confirm email" in the Supabase dashboard for the demo.
 - Store user email addresses privately; show only the user's public display name.
 - Users can attach photos to community posts; use Supabase Storage for attachments.
 - The community feed is a calm communication space for text posts and one-level replies.

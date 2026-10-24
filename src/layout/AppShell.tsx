@@ -1,8 +1,11 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   ChevronDown, HeartHandshake, MapPin, MapPinned,
-  MessageCircleQuestion, MessagesSquare, Newspaper, ShieldCheck, type LucideIcon,
+  LogOut, MessageCircleQuestion, MessagesSquare, Newspaper, ShieldCheck, type LucideIcon,
 } from 'lucide-react'
+
+import { communityApi } from '../features/community/api'
+import { useCommunitySession } from '../features/community/session'
 
 export type Page = 'feed' | 'news' | 'map' | 'resources' | 'sam' | 'signin'
 
@@ -44,6 +47,53 @@ function CityPicker({ city, onChange }: { city: string; onChange: (city: string)
   )
 }
 
+function ProfileMenu({ onSignIn }: { onSignIn: () => void }) {
+  const { session, configured } = useCommunitySession()
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const close = (event: MouseEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !ref.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', close)
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close) }
+  }, [open])
+
+  if (!configured) return null
+  if (!session) return <button type="button" className="header-sign-in" onClick={onSignIn}>Sign in</button>
+
+  const name = String(session.user.user_metadata?.display_name || 'Resident')
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0).toUpperCase()).join('') || '?'
+
+  async function signOut() {
+    setBusy(true); setError('')
+    try { await communityApi.signOut(); setOpen(false) }
+    catch { setError('Couldn’t sign out. Please try again.') }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <div className="profile-menu" ref={ref}>
+      <button type="button" className="profile-button" aria-label={`Account menu for ${name}`} aria-expanded={open} aria-haspopup="true" onClick={() => setOpen(!open)}>{initials}</button>
+      {open && (
+        <div className="profile-popover">
+          <p className="profile-name">{name}</p>
+          <p className="muted">Posts show this public name. Your email stays private.</p>
+          <button type="button" className="profile-signout" disabled={busy} onClick={() => void signOut()}>
+            <LogOut size={16} aria-hidden="true" />{busy ? 'Signing out…' : 'Sign out'}
+          </button>
+          {error && <p role="alert" className="error">{error}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 type AppShellProps = {
   page: Page
   onNavigate: (page: Page) => void
@@ -65,6 +115,8 @@ export function AppShell({ page, onNavigate, city, onCityChange, children }: App
           <span>Safety SAM</span>
         </button>
         <CityPicker city={city} onChange={onCityChange} />
+        <div className="header-spacer" />
+        <ProfileMenu onSignIn={() => onNavigate('signin')} />
       </header>
 
       <div className={`app-body${page === 'map' ? ' compact' : ''}`}>

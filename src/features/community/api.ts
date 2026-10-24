@@ -7,6 +7,8 @@ import {
 } from './schemas'
 import type { FeedCursor, PostEdit, PostInput } from './schemas'
 
+const passwordSchema = z.string().min(8, 'Use at least 8 characters.').max(72)
+
 const postSelect = 'id,author_id,city,post_type,body,photo_paths,created_at,updated_at,author:profiles!posts_author_id_fkey(id,display_name)'
 const replySelect = 'id,post_id,author_id,body,created_at,updated_at,author:profiles!post_replies_author_id_fkey(id,display_name)'
 
@@ -21,16 +23,22 @@ async function userId(client: SupabaseClient) {
 // the database's RLS policies remain the authority for all ownership checks.
 export function createCommunityApi(getClient: () => SupabaseClient = requireSupabase) {
   return {
-    async signIn(email: string, displayName: string) {
+    // Returns needsConfirmation when the project still requires email confirmation.
+    async signUp(email: string, password: string, displayName: string) {
       const address = z.email().parse(email.trim())
       const name = displayNameSchema.parse(displayName)
-      const { error } = await getClient().auth.signInWithOtp({
+      const { data, error } = await getClient().auth.signUp({
         email: address,
-        options: {
-          data: { display_name: name },
-          emailRedirectTo: window.location.origin + window.location.pathname,
-        },
+        password: passwordSchema.parse(password),
+        options: { data: { display_name: name } },
       })
+      if (error) throw error
+      return { needsConfirmation: !data.session }
+    },
+
+    async signIn(email: string, password: string) {
+      const address = z.email().parse(email.trim())
+      const { error } = await getClient().auth.signInWithPassword({ email: address, password })
       if (error) throw error
     },
 

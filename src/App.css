@@ -26,12 +26,20 @@ form p { margin: 0; }
 .badge { border: 1px solid #cbd0d6; padding: 1px 5px; border-radius: 2px; }
 .error { color: #9a2424; font-size: 14px; overflow-wrap: anywhere; }
 .notice { background: #eef3f7; border: 1px solid #becbd6; padding: 14px; border-radius: 3px; }
-.danger { color: #9a2424; border-color: #9a2424; }
-.actions { margin: 10px 0; }
-.actions button, .reply-toggle { font-size: 13px; padding: 5px 10px; }
-.edit-form { margin: 14px 0; }
-.delete-confirm { border: 1px solid #cbd0d6; padding: 12px; margin: 12px 0; }
-.delete-confirm p { margin-top: 0; }
+.actions { display: flex; gap: 4px; margin: -6px -6px -6px auto; }
+.reply-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.post-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.post-footer > .edit-form, .post-footer > .delete-confirm { flex: 1 0 100%; }
+button.ghost.icon { justify-content: center; width: 44px; min-height: 44px; padding: 0; border-radius: 50%; }
+.reply-toggle { font-size: 13px; padding: 5px 10px; }
+button.ghost { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border: 0; background: none; color: var(--muted); font-size: 14px; font-weight: 600; }
+button.ghost:hover:not(:disabled) { background: var(--bg); color: var(--text); filter: none; }
+button.ghost.danger:hover:not(:disabled) { background: var(--order-soft); color: var(--order); }
+.edit-form { padding: 16px; background: var(--bg); border-radius: 12px; }
+.edit-form textarea { background: #fff; }
+.delete-confirm { padding: 16px; background: var(--order-soft); border: 1px solid #f0b5ae; border-radius: 12px; }
+.delete-confirm p { margin: 0 0 12px; }
+button.danger-solid { border-color: var(--order); background: var(--order); color: #fff; font-weight: 700; }
 .replies { margin-top: 16px; padding-top: 16px; border-top: 1px solid #cbd0d6; }
 .reply-list { list-style: none; padding: 0; margin: 0; }
 .reply { padding: 12px 0 12px 14px; border-left: 2px solid #cbd0d6; margin-bottom: 16px; }
@@ -179,6 +187,13 @@ form p { margin: 0; }
 .sign-in-button { margin-bottom: 16px; border-color: var(--text); color: var(--text); font-weight: 600; }
 .sign-in-page { display: grid; gap: 12px; max-width: 480px; }
 .link-button { justify-self: start; min-height: 0; padding: 0; border: 0; background: none; color: var(--brand); font-weight: 600; }
-.signed-in-bar { justify-content: space-between; margin-bottom: 12px; }
 
 .new-post-button { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); border-color: var(--accent); color: var(--text); font-weight: 700; }
+.header-spacer { flex: 1; }
+.header-sign-in { min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--text); color: #fff; font-weight: 700; }
+.profile-menu { position: relative; }
+.profile-button { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: var(--text); color: #fff; font-size: 16px; font-weight: 700; }
+.profile-popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 10; display: grid; gap: 8px; width: 260px; padding: 16px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, .15); }
+.profile-popover p { margin: 0; }
+.profile-name { font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.profile-signout { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; }

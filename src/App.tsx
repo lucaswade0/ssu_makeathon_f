@@ -7,7 +7,7 @@ import type { CommunityPost, CommunityReply } from './features/community/schemas
 import { MapPage } from './features/map/MapPage'
 import { AppShell, ComingSoon, type Page } from './layout/AppShell'
 import './App.css'
-import { BadgeCheck, ExternalLink, MessageSquare, Pin, SquarePen } from 'lucide-react'
+import { BadgeCheck, ExternalLink, MessageSquare, Pencil, Pin, SquarePen, Trash2 } from 'lucide-react'
 import { sampleIncidents } from './features/map/sampleData'
 
 function ErrorMessage({ error }: { error: unknown }) {
@@ -26,37 +26,48 @@ function initials(name: string) {
 
 function Account() {
   const { session, loading, configured, error: sessionError } = useCommunitySession()
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
-  const [sent, setSent] = useState(false)
+  const [notice, setNotice] = useState('')
   const [error, setError] = useState<unknown>(null)
+  const signingUp = mode === 'signup'
   async function submit(event: FormEvent) {
     event.preventDefault()
-    setBusy(true); setError(null); setSent(false)
-    try { await communityApi.signIn(email, name); setSent(true) }
+    setBusy(true); setError(null); setNotice('')
+    try {
+      if (signingUp) {
+        const { needsConfirmation } = await communityApi.signUp(email, password, name)
+        if (needsConfirmation) setNotice('Account created. Confirm your email, then sign in.')
+      } else await communityApi.signIn(email, password)
+      setPassword('')
+    }
     catch (failure) { setError(failure) }
     finally { setBusy(false) }
   }
   async function signOut() {
     setBusy(true); setError(null)
-    try { await communityApi.signOut(); setSent(false); setEmail(''); setName('') }
+    try { await communityApi.signOut(); setNotice(''); setEmail(''); setPassword(''); setName('') }
     catch (failure) { setError(failure) }
     finally { setBusy(false) }
   }
   return <section className="panel" aria-labelledby="account-heading">
-    <h2 id="account-heading">{session ? 'Your account' : 'Sign in to post'}</h2>
+    <h2 id="account-heading">{session ? 'Your account' : signingUp ? 'Create an account' : 'Sign in to post'}</h2>
     <ErrorMessage error={sessionError || error} />
     {loading ? <p role="status">Checking your session…</p> : session ? <>
       <p>You’re signed in. Your posts show your public display name.</p>
       <button onClick={() => void signOut()} disabled={busy}>{busy ? 'Signing out…' : 'Sign out'}</button>
     </> : <form onSubmit={submit}>
-      <p className="muted">Anyone can read the feed. Use an email link to contribute.</p>
-      <label>Public display name<input value={name} onChange={e => setName(e.target.value)} required maxLength={80} autoComplete="nickname" disabled={busy} /></label>
+      <p className="muted">Anyone can read the feed. Sign in to contribute.</p>
+      {signingUp && <label>Public display name<input value={name} onChange={e => setName(e.target.value)} required maxLength={80} autoComplete="nickname" disabled={busy} /></label>}
       <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" disabled={busy} /></label>
-      <p className="muted">Your email won’t appear on posts.</p>
-      <button type="submit" disabled={busy || !configured || !name.trim()}>{busy ? 'Sending…' : 'Send sign-in link'}</button>
-      {sent && <p role="status">Check your email and open the sign-in link in this browser.</p>}
+      <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={signingUp ? 8 : undefined} autoComplete={signingUp ? 'new-password' : 'current-password'} disabled={busy} /></label>
+      {signingUp && <p className="muted">Your email won’t appear on posts.</p>}
+      <button type="submit" disabled={busy || !configured || (signingUp && !name.trim())}>{busy ? 'Please wait…' : signingUp ? 'Create account' : 'Sign in'}</button>
+      <button type="button" className="link-button" disabled={busy} onClick={() => { setMode(signingUp ? 'signin' : 'signup'); setError(null); setNotice('') }}>{signingUp ? 'Have an account? Sign in' : 'New here? Create an account'}</button>
+      {notice && <p role="status">{notice}</p>}
     </form>}
   </section>
 }
@@ -65,22 +76,6 @@ function SignInPage({ onBack }: { onBack: () => void }) {
   return <div className="sign-in-page">
     <button type="button" className="link-button" onClick={onBack}>← Back to feed</button>
     <Account />
-  </div>
-}
-
-function SignedInBar() {
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<unknown>(null)
-  async function signOut() {
-    setBusy(true); setError(null)
-    try { await communityApi.signOut() }
-    catch (failure) { setError(failure) }
-    finally { setBusy(false) }
-  }
-  return <div className="row signed-in-bar">
-    <span className="muted">You’re signed in. Your posts show your public display name.</span>
-    <button type="button" onClick={() => void signOut()} disabled={busy}>{busy ? 'Signing out…' : 'Sign out'}</button>
-    <ErrorMessage error={error} />
   </div>
 }
 
@@ -108,37 +103,47 @@ function PostComposer({ city }: { city: string }) {
   </section>
 }
 
-function EntryActions({ body, maxLength, onSave, onDelete, busy, post }: {
+// Returns the icon buttons (for a header) and the edit form or delete confirmation (for below the text).
+function useEntryActions({ body, maxLength, onSave, onDelete, busy, post }: {
   body: string; maxLength: number; onSave: (body: string) => Promise<unknown>
   onDelete: () => Promise<unknown>; busy: boolean; post?: boolean
 }) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [draft, setDraft] = useState(body)
+  const noun = post ? 'post' : 'reply'
   async function save(event: FormEvent) {
     event.preventDefault()
     try { await onSave(draft); setEditing(false) } catch { /* Keep edits on failure. */ }
   }
-  if (editing) return <form onSubmit={save} className="edit-form">
-    <label>Edit text<textarea value={draft} onChange={e => setDraft(e.target.value)} required maxLength={maxLength} rows={3} disabled={busy} /></label>
-    <div className="row"><button type="submit" disabled={busy || !draft.trim()}>Save changes</button><button type="button" disabled={busy} onClick={() => setEditing(false)}>Cancel</button></div>
-  </form>
-  if (deleting) return <div className="delete-confirm">
-    <p>Delete this {post ? 'post and its replies' : 'reply'}?</p>
-    <div className="row"><button className="danger" disabled={busy} onClick={() => void onDelete().then(() => setDeleting(false)).catch(() => {})}>Confirm delete</button><button disabled={busy} onClick={() => setDeleting(false)}>Cancel</button></div>
+  const buttons = <div className="actions">
+    <button className="ghost icon" aria-label={`Edit ${noun}`} title="Edit" disabled={busy || editing || deleting} onClick={() => { setDraft(body); setEditing(true) }}><Pencil size={18} aria-hidden="true" /></button>
+    <button className="ghost icon danger" aria-label={`Delete ${noun}`} title="Delete" disabled={busy || editing || deleting} onClick={() => setDeleting(true)}><Trash2 size={18} aria-hidden="true" /></button>
   </div>
-  return <div className="row actions"><button disabled={busy} onClick={() => { setDraft(body); setEditing(true) }}>Edit</button><button disabled={busy} onClick={() => setDeleting(true)}>Delete</button></div>
+  const panel = editing ? <form onSubmit={save} className="edit-form">
+    <label>Edit {noun}<textarea value={draft} onChange={e => setDraft(e.target.value)} required maxLength={maxLength} rows={3} disabled={busy} autoFocus /></label>
+    <div className="row"><button type="submit" disabled={busy || !draft.trim()}>{busy ? 'Saving…' : 'Save changes'}</button><button type="button" disabled={busy} onClick={() => setEditing(false)}>Cancel</button></div>
+  </form> : deleting ? <div className="delete-confirm" role="alertdialog" aria-label={`Delete this ${noun}`}>
+    <p><strong>Delete this {post ? 'post and its replies' : 'reply'}?</strong> This can’t be undone.</p>
+    <div className="row"><button className="danger-solid" disabled={busy} onClick={() => void onDelete().then(() => setDeleting(false)).catch(() => {})}>{busy ? 'Deleting…' : 'Delete'}</button><button disabled={busy} onClick={() => setDeleting(false)}>Keep it</button></div>
+  </div> : null
+  return { buttons, panel }
 }
 
 function ReplyItem({ reply }: { reply: CommunityReply }) {
   const { session } = useCommunitySession()
   const mutation = useReplyMutation()
+  const actions = useEntryActions({ body: reply.body, maxLength: 2000, busy: mutation.isPending,
+    onSave: body => mutation.mutateAsync({ action: 'edit', id: reply.id, body }),
+    onDelete: () => mutation.mutateAsync({ action: 'delete', id: reply.id }) })
+  const mine = session?.user.id === reply.author_id
   return <li className="reply">
-    <div className="meta"><strong>{reply.author?.display_name || 'Resident'}</strong><Timestamp value={reply.created_at} />{reply.updated_at !== reply.created_at && <span>Edited</span>}</div>
+    <div className="reply-head">
+      <div className="meta"><strong>{reply.author?.display_name || 'Resident'}</strong><Timestamp value={reply.created_at} />{reply.updated_at !== reply.created_at && <span>Edited</span>}</div>
+      {mine && actions.buttons}
+    </div>
     <p className="body-text">{reply.body}</p>
-    {session?.user.id === reply.author_id && <EntryActions body={reply.body} maxLength={2000} busy={mutation.isPending}
-      onSave={body => mutation.mutateAsync({ action: 'edit', id: reply.id, body })}
-      onDelete={() => mutation.mutateAsync({ action: 'delete', id: reply.id })} />}
+    {mine && actions.panel}
     <ErrorMessage error={mutation.error} />
   </li>
 }
@@ -170,7 +175,11 @@ function Replies({ postId, onSignIn }: { postId: string; onSignIn: () => void })
 function PostCard({ post, sample = false, onSignIn }: { post: CommunityPost; sample?: boolean; onSignIn: () => void }) {
   const { session } = useCommunitySession()
   const mutation = usePostMutation()
-  const [showReplies, setShowReplies] = useState(true)
+  const [showReplies, setShowReplies] = useState(false)
+  const actions = useEntryActions({ body: post.body, maxLength: 5000, busy: mutation.isPending, post: true,
+    onSave: body => mutation.mutateAsync({ action: 'edit', id: post.id, input: { body } }),
+    onDelete: () => mutation.mutateAsync({ action: 'delete', id: post.id }) })
+  const mine = !sample && session?.user.id === post.author_id
   return <article className="panel post" aria-label={`Post by ${post.author?.display_name || 'Resident'}`}>
     <div className="post-head">
       <span className="avatar" aria-hidden="true">{initials(post.author?.display_name || 'Resident')}</span>
@@ -179,14 +188,15 @@ function PostCard({ post, sample = false, onSignIn }: { post: CommunityPost; sam
         <div className="meta"><Timestamp value={post.created_at} /><span className="post-type">{post.post_type}</span>{post.updated_at !== post.created_at && <span>Edited</span>}</div>
       </div>
       <span className="badge community">{sample ? 'Sample post' : 'Community · unverified'}</span>
+      {mine && actions.buttons}
     </div>
     <p className="body-text">{post.body}</p>
+    {mine && actions.panel}
     {!sample && <>
-      {session?.user.id === post.author_id && <EntryActions body={post.body} maxLength={5000} busy={mutation.isPending} post
-        onSave={body => mutation.mutateAsync({ action: 'edit', id: post.id, input: { body } })}
-        onDelete={() => mutation.mutateAsync({ action: 'delete', id: post.id })} />}
+      <div className="post-footer">
+        <button className="reply-toggle" aria-expanded={showReplies} onClick={() => setShowReplies(!showReplies)}><MessageSquare size={14} aria-hidden="true" />{showReplies ? 'Hide replies' : 'View replies'}</button>
+      </div>
       <ErrorMessage error={mutation.error} />
-      <button className="reply-toggle" aria-expanded={showReplies} onClick={() => setShowReplies(!showReplies)}><MessageSquare size={14} aria-hidden="true" />{showReplies ? 'Hide replies' : 'View replies'}</button>
       {showReplies && <Replies key={session?.user.id || 'guest'} postId={post.id} onSignIn={onSignIn} />}
     </>}
   </article>
@@ -261,7 +271,7 @@ function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: str
         <button type="button" onClick={onOpenMap}>View map</button>
         <span className="muted">Sample public data</span>
       </div>
-      {session && configured && <><SignedInBar /><PostComposer key={session.user.id} city={city} /></>}
+      {session && configured && <PostComposer key={session.user.id} city={city} />}
       {configured && feed.isPending && <p role="status">Loading community posts…</p>}
       {feed.isError && <section className="panel"><h3>Couldn’t load the feed</h3><ErrorMessage error={feed.error} /><p>Check your connection. If this is a new project, make sure the database migrations have been applied.</p><button onClick={() => void refresh()}>Try again</button></section>}
       {feed.isError && posts.length > 0 && <p className="error">Showing previously loaded posts. They may be out of date.</p>}
