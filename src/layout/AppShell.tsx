@@ -4,7 +4,7 @@ import {
   MessageCircleQuestion, MessagesSquare, Newspaper, type LucideIcon,
 } from 'lucide-react'
 
-export type Page = 'feed' | 'news' | 'map' | 'resources' | 'sam'
+export type Page = 'feed' | 'news' | 'map' | 'resources' | 'sam' | 'signin'
 
 const navItems: { id: Page; label: string; Icon: LucideIcon }[] = [
   { id: 'feed', label: 'Feed', Icon: MessagesSquare },

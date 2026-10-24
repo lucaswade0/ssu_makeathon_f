@@ -7,7 +7,7 @@ import type { CommunityPost, CommunityReply } from './features/community/schemas
 import { MapPage } from './features/map/MapPage'
 import { AppShell, ComingSoon, type Page } from './layout/AppShell'
 import './App.css'
-import { BadgeCheck, ExternalLink, MessageSquare, Pin } from 'lucide-react'
+import { BadgeCheck, ExternalLink, MessageSquare, Pin, SquarePen } from 'lucide-react'
 import { sampleIncidents } from './features/map/sampleData'
 
 function ErrorMessage({ error }: { error: unknown }) {
@@ -59,6 +59,29 @@ function Account() {
       {sent && <p role="status">Check your email and open the sign-in link in this browser.</p>}
     </form>}
   </section>
+}
+
+function SignInPage({ onBack }: { onBack: () => void }) {
+  return <div className="sign-in-page">
+    <button type="button" className="link-button" onClick={onBack}>← Back to feed</button>
+    <Account />
+  </div>
+}
+
+function SignedInBar() {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  async function signOut() {
+    setBusy(true); setError(null)
+    try { await communityApi.signOut() }
+    catch (failure) { setError(failure) }
+    finally { setBusy(false) }
+  }
+  return <div className="row signed-in-bar">
+    <span className="muted">You’re signed in. Your posts show your public display name.</span>
+    <button type="button" onClick={() => void signOut()} disabled={busy}>{busy ? 'Signing out…' : 'Sign out'}</button>
+    <ErrorMessage error={error} />
+  </div>
 }
 
 function PostComposer({ city }: { city: string }) {
@@ -120,7 +143,7 @@ function ReplyItem({ reply }: { reply: CommunityReply }) {
   </li>
 }
 
-function Replies({ postId }: { postId: string }) {
+function Replies({ postId, onSignIn }: { postId: string; onSignIn: () => void }) {
   const { session } = useCommunitySession()
   const query = usePostReplies(postId)
   const mutation = useReplyMutation()
@@ -140,14 +163,14 @@ function Replies({ postId }: { postId: string }) {
       <label>Your reply<textarea rows={2} maxLength={2000} required value={body} onChange={e => setBody(e.target.value)} disabled={mutation.isPending} /></label>
       <button type="submit" disabled={mutation.isPending || !body.trim()}>{mutation.isPending ? 'Replying…' : 'Publish reply'}</button>
       <ErrorMessage error={mutation.error} />
-    </form> : <p className="muted">Sign in to reply.</p>}
+    </form> : <button type="button" className="sign-in-button" onClick={onSignIn}>Sign in to reply</button>}
   </section>
 }
 
-function PostCard({ post, sample = false }: { post: CommunityPost; sample?: boolean }) {
+function PostCard({ post, sample = false, onSignIn }: { post: CommunityPost; sample?: boolean; onSignIn: () => void }) {
   const { session } = useCommunitySession()
   const mutation = usePostMutation()
-  const [showReplies, setShowReplies] = useState(false)
+  const [showReplies, setShowReplies] = useState(true)
   return <article className="panel post" aria-label={`Post by ${post.author?.display_name || 'Resident'}`}>
     <div className="post-head">
       <span className="avatar" aria-hidden="true">{initials(post.author?.display_name || 'Resident')}</span>
@@ -164,7 +187,7 @@ function PostCard({ post, sample = false }: { post: CommunityPost; sample?: bool
         onDelete={() => mutation.mutateAsync({ action: 'delete', id: post.id })} />}
       <ErrorMessage error={mutation.error} />
       <button className="reply-toggle" aria-expanded={showReplies} onClick={() => setShowReplies(!showReplies)}><MessageSquare size={14} aria-hidden="true" />{showReplies ? 'Hide replies' : 'View replies'}</button>
-      {showReplies && <Replies key={session?.user.id || 'guest'} postId={post.id} />}
+      {showReplies && <Replies key={session?.user.id || 'guest'} postId={post.id} onSignIn={onSignIn} />}
     </>}
   </article>
 }
@@ -181,7 +204,7 @@ const samplePosts: CommunityPost[] = [{
   author: { id: '00000000-0000-4000-8000-000000000002', display_name: 'Sample resident' },
 }]
 
-function Feed({ city, sample, onOpenMap }: { city: string; sample: boolean; onOpenMap: () => void }) {
+function Feed({ city, sample, onOpenMap, onToggleSample, onSignIn }: { city: string; sample: boolean; onOpenMap: () => void; onToggleSample: () => void; onSignIn: () => void }) {
   const { session, configured } = useCommunitySession()
   const feed = useCommunityFeed(sample ? '' : city)
   const alert = useOfficialAlert(sample ? '' : city)
@@ -201,11 +224,15 @@ function Feed({ city, sample, onOpenMap }: { city: string; sample: boolean; onOp
   const expired = official?.expires_at && Date.parse(official.expires_at) <= now
   return <>
     <div className="row feed-heading"><h2>{sample ? 'Sample feed' : `${city} feed`}</h2>
-      {!sample && <button disabled={!configured || refreshing || feed.isFetching} onClick={() => void refresh()}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>}
+      <div className="row">
+        {!sample && configured && !session && <button type="button" className="new-post-button" onClick={onSignIn}><SquarePen size={16} aria-hidden="true" />New post</button>}
+        {!sample && <button disabled={!configured || refreshing || feed.isFetching} onClick={() => void refresh()}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>}
+        <button type="button" onClick={onToggleSample}>{sample ? 'Back to live feed' : 'View sample feed'}</button>
+      </div>
     </div>
     {sample ? <p role="status" className="notice">Sample data only. Posting and replies are available in the live feed.</p> : <>
       {!configured && <p role="status" className="notice">The live feed isn’t configured. Add your Supabase settings or view the sample feed.</p>}
-        {configured && <section className={`official-card${expired ? ' expired' : ''}`} aria-label="Latest official alert">
+      {configured && <section className={`official-card${expired ? ' expired' : ''}`} aria-label="Latest official alert">
         <div>
           <div className="official-tags">
             <span className="official-badge"><BadgeCheck size={14} aria-hidden="true" />OFFICIAL</span>
@@ -234,13 +261,13 @@ function Feed({ city, sample, onOpenMap }: { city: string; sample: boolean; onOp
         <button type="button" onClick={onOpenMap}>View map</button>
         <span className="muted">Sample public data</span>
       </div>
-      {session && configured ? <PostComposer key={session.user.id} city={city} /> : <p className="muted">Read community posts below. Sign in to publish a post or reply.</p>}
+      {session && configured && <><SignedInBar /><PostComposer key={session.user.id} city={city} /></>}
       {configured && feed.isPending && <p role="status">Loading community posts…</p>}
       {feed.isError && <section className="panel"><h3>Couldn’t load the feed</h3><ErrorMessage error={feed.error} /><p>Check your connection. If this is a new project, make sure the database migrations have been applied.</p><button onClick={() => void refresh()}>Try again</button></section>}
       {feed.isError && posts.length > 0 && <p className="error">Showing previously loaded posts. They may be out of date.</p>}
       {feed.isSuccess && !posts.length && <div className="panel"><h3>No community posts yet</h3><p>Be the first to share an update or ask a question in {city}.</p></div>}
     </>}
-    <div className="posts">{posts.map(post => <PostCard key={post.id} post={post} sample={sample} />)}</div>
+    <div className="posts">{posts.map(post => <PostCard key={post.id} post={post} sample={sample} onSignIn={onSignIn} />)}</div>
     {!sample && feed.hasNextPage && <button disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>{feed.isFetchingNextPage ? 'Loading…' : 'Load older posts'}</button>}
     {!sample && feed.dataUpdatedAt > 0 && <p className="muted">Last checked <Timestamp value={new Date(feed.dataUpdatedAt).toISOString()} /> · Updates every 30 seconds.</p>}
   </>
@@ -251,18 +278,20 @@ function App() {
   const [city, setCity] = useState('Santa Rosa')
   const [sample, setSample] = useState(false)
 
+  function openSignIn() {
+    setPage('signin')
+    window.scrollTo(0, 0)
+  }
+
   return <AppShell page={page} onNavigate={setPage} city={city} onCityChange={setCity}>
-    {page === 'feed' && <div className="layout">
-      <aside>
-        {!sample && <Account />}
-        <button className="mode-button" onClick={() => setSample(!sample)}>{sample ? 'Back to live feed' : 'View sample feed'}</button>
-      </aside>
-      <section className="feed" aria-label="Community feed"><Feed key={`${city}-${sample}`} city={city} sample={sample} onOpenMap={() => setPage('map')} /></section>
-    </div>}
+    {page === 'feed' && <section className="feed" aria-label="Community feed">
+      <Feed key={`${city}-${sample}`} city={city} sample={sample} onOpenMap={() => setPage('map')} onToggleSample={() => setSample(!sample)} onSignIn={openSignIn} />
+    </section>}
     {page === 'map' && <MapPage city={city} />}
     {page === 'news' && <ComingSoon title="News" text="Local news and public data summaries will appear here." />}
     {page === 'resources' && <ComingSoon title={`Resources in ${city}`} text="Shelters and supplies, labeled by who confirmed them. Coming in the next update." />}
     {page === 'sam' && <ComingSoon title="Meet SAM" text="SAM will answer general preparedness questions and point you to official instructions. Coming soon." />}
+    {page === 'signin' && <SignInPage onBack={() => setPage('feed')} />}
   </AppShell>
 }
 

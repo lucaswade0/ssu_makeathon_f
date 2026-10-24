@@ -1,4 +1,3 @@
-.layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 28px; align-items: start; }
 aside { display: grid; gap: 16px; }
 .panel { padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 h2 { margin: 0 0 16px; font-size: 19px; }
@@ -38,9 +37,7 @@ form p { margin: 0; }
 .reply { padding: 12px 0 12px 14px; border-left: 2px solid #cbd0d6; margin-bottom: 16px; }
 .reply p { margin: 6px 0; }
 .replies > form { margin-top: 16px; }
-.mode-button { width: 100%; }
 @media (max-width: 720px) {
-  .layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .panel { padding: 16px; }
 }
 .map-page { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; }
@@ -155,3 +152,11 @@ form p { margin: 0; }
 @media (max-width: 720px) {
   .official-card { grid-template-columns: 1fr; }
 }
+
+.feed { max-width: 800px; }
+.sign-in-button { margin-bottom: 16px; border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.sign-in-page { display: grid; gap: 12px; max-width: 480px; }
+.link-button { justify-self: start; min-height: 0; padding: 0; border: 0; background: none; color: var(--brand); font-weight: 600; }
+.signed-in-bar { justify-content: space-between; margin-bottom: 12px; }
+
+.new-post-button { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
