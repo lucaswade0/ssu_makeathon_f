@@ -11,6 +11,12 @@ describe('SimulationBar', () => {
     expect(html(idle)).toContain('Run disaster simulation')
   })
 
+  it('names the start button for screen readers even when phones show only its icon', () => {
+    const out = html(idle)
+    expect(out).toContain('class="sim-start" aria-label="Run disaster simulation"')
+    expect(out).toContain('<span class="sim-start-label">Run disaster simulation</span>')
+  })
+
   it('labels the simulation as sample data and shows the current step', () => {
     const out = html(simulationReducer(idle, { type: 'start', now: Date.now() }))
     expect(out).toContain('Sample data, not a real event')

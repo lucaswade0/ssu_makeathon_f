@@ -149,8 +149,9 @@ type AppShellProps = {
 export function AppShell({ page, onNavigate, children }: AppShellProps) {
   const { t } = useI18n()
   const simulating = useSimulation().active
+  // Phones hide the floating "Run disaster simulation" button on Ask SAM and Profile, where it covers the input and buttons.
   return (
-    <div className={`app${simulating ? ' sim-on' : ''}`}>
+    <div className={`app${simulating ? ' sim-on' : ''}${page === 'sam' || page === 'profile' ? ' no-sim-start' : ''}`}>
       <TranslationBanner />
 
       <div className={`app-body${page === 'map' ? ' compact' : ''}`}>

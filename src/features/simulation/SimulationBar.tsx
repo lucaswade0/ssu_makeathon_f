@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Pause, Play, Radio, SkipBack, SkipForward, X } from 'lucide-react'
 import { useI18n } from '../i18n/context'
 import { useSimulation, type SimSpeed } from './context'
@@ -7,10 +8,21 @@ const speeds: SimSpeed[] = [1, 2, 4]
 export function SimulationBar() {
   const sim = useSimulation()
   const { t } = useI18n()
+  // On phones the start button is a small round icon; the first tap shows its label, the second starts.
+  const [expanded, setExpanded] = useState(false)
+  useEffect(() => {
+    if (!expanded) return
+    const id = setTimeout(() => setExpanded(false), 4000)
+    return () => clearTimeout(id)
+  }, [expanded])
 
   if (!sim.active || !sim.step) {
-    return <button type="button" className="sim-start" onClick={sim.start}>
-      <Radio size={18} aria-hidden="true" />{t('sim.start')}
+    const onClick = () => {
+      if (!expanded && window.matchMedia?.('(max-width: 720px)').matches) setExpanded(true)
+      else sim.start()
+    }
+    return <button type="button" className={`sim-start${expanded ? ' expanded' : ''}`} aria-label={t('sim.start')} onClick={onClick}>
+      <Radio size={18} aria-hidden="true" /><span className="sim-start-label">{t('sim.start')}</span>
     </button>
   }
 
