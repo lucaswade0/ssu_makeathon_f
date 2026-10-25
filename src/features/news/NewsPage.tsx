@@ -28,7 +28,7 @@ function NewsCard({ item, expired }: { item: NewsItem; expired: boolean }) {
     <div className="news-meta">
       <span>{item.source}</span>
       <time dateTime={item.time ?? undefined}>{formatTime(item.time)}</time>
-      <a href={item.url} target="_blank" rel="noopener noreferrer">View source<ExternalLink size={14} aria-hidden="true" /></a>
+      <a href={item.url}>View source<ExternalLink size={14} aria-hidden="true" /></a>
     </div>
   </article>
 }

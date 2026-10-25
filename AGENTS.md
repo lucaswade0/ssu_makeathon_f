@@ -60,6 +60,7 @@ Start here. This section is the quickest way to get oriented; the rest of the fi
 
 - Design tokens live in `src/index.css`: amber header (`--accent`), charcoal text and active states (`--text`), official blue, evacuation red, verified green, community gray. Font is Inter.
 - Official and community content must stay visually distinct: community content uses a dashed gray badge, official content uses the blue OFFICIAL badge, public data uses a "Public data" badge, and sample data uses a "Sample data" badge.
+- Links open in the same tab (no `target="_blank"`).
 - Tap targets are at least 44px. Use the existing spacing scale (multiples of 8px) and card style (white, 1px light border, 16px radius).
 - The location in the header is a plain text label with an "Approximate location" caption and a Change link. Manual city entry must keep working when location permission is denied.
 

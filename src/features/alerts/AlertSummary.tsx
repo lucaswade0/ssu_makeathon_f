@@ -32,11 +32,11 @@ function AlertModal({ alert, onClose }: { alert: AlertView; onClose: () => void 
     <dl className="alert-facts">
       <div><dt>Issued</dt><dd>{formatAlertTime(alert.issuedAt)}</dd></div>
       {alert.expiresAt && <div><dt>Expires</dt><dd>{formatAlertTime(alert.expiresAt)}</dd></div>}
-      <div><dt>Source</dt><dd>{link ? <a href={link} target="_blank" rel="noreferrer">{alert.source}</a> : alert.source}</dd></div>
+      <div><dt>Source</dt><dd>{link ? <a href={link}>{alert.source}</a> : alert.source}</dd></div>
     </dl>
     {alert.note && <p className="alert-note-text">{alert.note}</p>}
     <div className="row">
-      {link && <a className="official-link" href={link} target="_blank" rel="noreferrer">{sourceLinkLabel(alert.kind)}<ExternalLink size={14} aria-hidden="true" /></a>}
+      {link && <a className="official-link" href={link}>{sourceLinkLabel(alert.kind)}<ExternalLink size={14} aria-hidden="true" /></a>}
       <button type="button" onClick={onClose}>Close</button>
     </div>
   </dialog>
@@ -54,7 +54,7 @@ export function AlertSummary({ alert, defaultOpen = false, extra }: { alert: Ale
     <div className="alert-line">
       <span>Issued {formatAlertTime(alert.issuedAt)}</span>
       {link
-        ? <a className="alert-source" href={link} target="_blank" rel="noreferrer">{alert.source}<ExternalLink size={12} aria-hidden="true" /></a>
+        ? <a className="alert-source" href={link}>{alert.source}<ExternalLink size={12} aria-hidden="true" /></a>
         : <span>{alert.source}</span>}
       {extra}
       <button type="button" className="alert-open" aria-haspopup="dialog" onClick={() => setOpen(true)}>Read full alert</button>

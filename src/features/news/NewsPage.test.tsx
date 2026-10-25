@@ -96,4 +96,17 @@ describe('NewsPage', () => {
     expect(html).toContain('Sample data')
     expect(html).not.toContain('Checking public sources')
   })
+
+  it('opens source links in the same tab', () => {
+    const html = render(city, client => {
+      client.setQueryData(['hazards', 'weather', city], [{
+        id: 'urn:1', event: 'Red Flag Warning', severity: 'Severe', headline: 'Red Flag Warning until 8 PM',
+        areaDesc: 'North Bay Mountains', senderName: 'NWS San Francisco CA',
+        effective: new Date().toISOString(), expires: new Date(Date.now() + 3_600_000).toISOString(),
+      }])
+    })
+    expect(html).toContain('View source')
+    expect(html).toContain('href="https://www.weather.gov/"')
+    expect(html).not.toContain('target=')
+  })
 })

@@ -42,10 +42,16 @@ describe('AlertSummary card', () => {
     expect(html(<AlertSummary alert={{ ...alert, kind: 'official', sourceUrl: 'https://example.gov/alert' }} defaultOpen />)).toContain('href="https://example.gov/alert"')
   })
 
-  it('makes the source name on the card a link that opens in a new tab', () => {
+  it('makes the source name on the card a link that opens in the same tab', () => {
     const out = html(<AlertSummary alert={{ ...alert, sourceUrl: 'https://forecast.weather.gov/x' }} />)
-    expect(out).toMatch(/<a[^>]*href="https:\/\/forecast\.weather\.gov\/x"[^>]*target="_blank"[^>]*rel="noreferrer"[^>]*>NWS San Francisco CA/)
+    expect(out).toMatch(/<a[^>]*href="https:\/\/forecast\.weather\.gov\/x"[^>]*>NWS San Francisco CA/)
     expect(html(<AlertSummary alert={alert} />)).not.toContain('<a ')
+  })
+
+  it('never opens a new tab from any alert link', () => {
+    const out = html(<AlertSummary alert={{ ...alert, sourceUrl: 'https://forecast.weather.gov/x' }} defaultOpen />)
+    expect(out).toContain('href="https://forecast.weather.gov/x"')
+    expect(out).not.toContain('target=')
   })
 
   it('labels the modal link for each kind and also links the source in the facts list', () => {
