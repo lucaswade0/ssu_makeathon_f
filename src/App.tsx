@@ -355,7 +355,7 @@ function App() {
     {page === 'map' && <MapPage city={city} />}
     {page === 'news' && <NewsPage city={city} />}
     {page === 'resources' && <ResourcesPage city={city} onSignIn={openSignIn} />}
-    {page === 'sam' && <SamPage city={city} />}
+    {page === 'sam' && <SamPage city={city} onOpenMap={() => setPage('map')} />}
     {page === 'signin' && <SignInPage onBack={() => setPage('feed')} />}
   </AppShell>
 }

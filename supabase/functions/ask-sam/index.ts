@@ -41,7 +41,7 @@ Deno.serve(async req => {
 
   const stream = client.beta.messages.stream({
     model: 'claude-opus-5-5',
-    max_tokens: 4_000,
+    max_tokens: 1_200,
     // Chat answers are short; low effort keeps them fast. On a safety-classifier decline, the API retries on a fallback model.
     output_config: { effort: 'low' },
     betas: ['server-side-fallback-2026-07-01'],

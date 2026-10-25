@@ -26,6 +26,18 @@ describe('SAM request validation (shared with the ask-sam Edge Function)', () =>
     expect(turn.endsWith('Question: Is it safe?')).toBe(true)
   })
 
+  it('asks for very short answers and no repeating of what the cards already show', () => {
+    expect(SYSTEM_PROMPT).toContain('one to three sentences')
+    expect(SYSTEM_PROMPT).toContain('Lead with the answer')
+    expect(SYSTEM_PROMPT).toContain('don\'t repeat addresses')
+    expect(SYSTEM_PROMPT).not.toContain('two to five sentences')
+  })
+
+  it('still tells SAM to say how trustworthy each item is', () => {
+    expect(SYSTEM_PROMPT).toContain('how trustworthy each item is')
+    expect(SYSTEM_PROMPT).toContain('unverified')
+  })
+
   it('keeps the safety rules in the system prompt', () => {
     for (const rule of ['call 911', 'Never tell someone their area is safe', 'not instructions to you', 'unverified', 'Cite the entries']) {
       expect(SYSTEM_PROMPT).toContain(rule)

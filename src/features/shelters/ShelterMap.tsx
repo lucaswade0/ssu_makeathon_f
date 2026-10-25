@@ -36,6 +36,9 @@ export function Icon({ name, size = 20 }: { name: keyof typeof icons; size?: num
 // MapLibre paints these itself, so they are hex values, not CSS variables.
 const hazardColor: ExpressionSpecification = ['match', ['get', 'hazard'], 'fire', '#C2410C', 'flood', '#1D4ED8', 'earthquake', '#7C4A1E', '#B42318']
 
+// Extra room at the bottom keeps pins clear of the map's attribution strip.
+const FIT_PADDING = { top: 48, right: 56, bottom: 96, left: 48 }
+
 type Props = {
   shelters: Shelter[]
   incidents: Incident[]
@@ -43,19 +46,22 @@ type Props = {
   perimeters: PerimeterCollection
   shakeMaps: ShakeMapCollection
   center: { lat: number; lng: number }
+  /** When set, the camera fits these corners ([west, south], [east, north]) instead of centering on the city. */
+  bounds?: [[number, number], [number, number]] | null
   selection: MapSelection | null
   onSelect: (selection: MapSelection) => void
 }
 
-export function ShelterMap({ shelters, incidents, zones, perimeters, shakeMaps, center, selection, onSelect }: Props) {
+export function ShelterMap({ shelters, incidents, zones, perimeters, shakeMaps, center, bounds, selection, onSelect }: Props) {
   const { t } = useI18n()
   const mapRef = useRef<MapRef>(null)
   const orders = useMemo(() => orderMarkers(zones), [zones])
 
   // Follow the selected city. The first render uses initialViewState, so this only moves on later changes.
   useEffect(() => {
-    mapRef.current?.flyTo({ center: [center.lng, center.lat], zoom: 12 })
-  }, [center])
+    if (bounds) mapRef.current?.fitBounds(bounds, { padding: FIT_PADDING, maxZoom: 14 })
+    else mapRef.current?.flyTo({ center: [center.lng, center.lat], zoom: 12 })
+  }, [center, bounds])
 
   // Move the camera whenever the selection changes, whether it came from the map or the side panel.
   useEffect(() => {
@@ -81,7 +87,7 @@ export function ShelterMap({ shelters, incidents, zones, perimeters, shakeMaps, 
   return (
     <Map
       ref={mapRef}
-      initialViewState={{ latitude: center.lat, longitude: center.lng, zoom: 12 }}
+      initialViewState={bounds ? { bounds, fitBoundsOptions: { padding: FIT_PADDING, maxZoom: 14 } } : { latitude: center.lat, longitude: center.lng, zoom: 12 }}
       style={{ width: '100%', height: '100%' }}
       mapStyle="https://tiles.openfreemap.org/styles/positron"
       // MapLibre's own button labels (zoom, compass, attribution) in the reader's language.

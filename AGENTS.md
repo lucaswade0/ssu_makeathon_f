@@ -26,9 +26,11 @@ Start here. This section is the quickest way to get oriented; the rest of the fi
 | `src/features/map/` | Map page and the seeded sample data and types (`sampleData.ts`) |
 | `src/features/shelters/` | The map layer. It draws a pin for every resource category, using the same `resources` query as the Resources page |
 | `src/features/resources/` | Resources page, API, hooks, schemas, and sample data (all six categories) |
-| `src/features/i18n/` | Languages (English, Spanish, Vietnamese, Chinese): message dictionaries, `useI18n()`, header language menu, and the on-request Translate button |
+| `src/features/sam/` | Meet SAM: the chat page, the context SAM reads, and the cards and map shown under its answers |
+| `src/features/i18n/` | Languages (English, Spanish, Vietnamese, Chinese): message dictionaries, `useI18n()`, header language menu, and automatic on-device translation of posts and alerts, with a Translate button as the fallback |
 | `src/features/news/` | News page and the adapters (`newsItems.ts`) that turn each source into one card shape |
 | `src/features/simulation/` | The disaster simulation: scripted scenario (`scenario.ts`), controls reducer and context (`context.ts`), provider, floating bar |
+| `supabase/functions/ask-sam/` | The server function behind Meet SAM (the AI answer service). It holds SAM's rules and the provider key as a secret. The team deploys it; the app build does not. |
 | `supabase/migrations/` | Database migrations. Never edit an applied one. |
 
 ### What is built
@@ -39,18 +41,30 @@ Start here. This section is the quickest way to get oriented; the rest of the fi
 - News: a "Situation updates" list of public-data items with a hazard filter, source, time, and a "Data sources" panel.
 - Resources: a card grid with a type and status filter (shelter, water and food, medical, charging, pets, transportation). Each card shows status, source, last-confirmed time, and a stale label after 7 days. Signed-in residents can add community-submitted resources by searching for a place or clicking a map and dropping a draggable pin (a pin is required), report inaccurate or unsafe ones, and remove their own. Needs the `resources` migration applied.
 - Languages: the core interface (header, nav, feed, alert card, News, map tabs, Resources, simulation bar) is available in English, Spanish, Vietnamese and Simplified Chinese. The language is detected from the browser, can be changed in the header, and is remembered on the device. Posts, replies, alerts, News cards and resource descriptions translate automatically into the chosen language, using the browser's built-in on-device translator (recent desktop Chrome). Every machine translation is labeled and has "Show original" one tap away. Choosing a language starts the one-time model download (browsers only allow that after a click). With a saved language and no click yet, a banner under the header offers a "Download translation" button, the first click or key press on the page also starts the download, and until it finishes each text shows a Translate button. Language detection falls back to a built-in guess (English, Spanish, French, Portuguese, Vietnamese, Chinese) when the browser has no detector; in browsers without the translator, the online-translator link only appears for text that is not already in the reader's language. Browsers without the translator show a link to an online translator and a note that it sends the text to a third party. No database change.
+- Alerts: the pinned alert is a compact card colored by urgency (blue Advisory, amber Be ready, red Urgent, always with the word) that opens the full notice in a dialog, with a link to the source. With no responder alert, the most serious live NWS alert is pinned instead, labeled as public data. Responder alert severity needs the `alert_severity` migration.
+- Map evacuation orders: each order shows a pulsing red circle with an alert icon on top of its real zone outline. Warnings keep a dashed outline and no circle.
+- Posts: the post type (Update, Question, General) is a colored tag with an icon, next to the date.
+- Meet SAM: a chat that answers from the selected city's data and cites what it used by ID. Under each answer the app shows the cited items as real cards (alerts, resources, incidents and zones as News cards, unverified post cards) and a small tappable map. Answers are kept very short (one to three sentences) because the cards carry the details. See "Safety assistant". Needs the `ask-sam` function deployed.
 - Disaster simulation: a floating bar (bottom of every page) steps through a scripted, sample-only Santa Rosa wildfire. It drives the pinned alert and sample posts in the feed, incidents, zones, and shelters on the map, and cards in News. All simulated data is labeled sample data. There are no per-page sample toggles; the simulation is the only sample mode.
-- Tests: reducer, scenario, adapter, API, and server-rendered page tests (`npm test`).
+- Tests: reducer, scenario, adapter, API, translation, SAM, and server-rendered page tests (`npm test`, about 370 tests).
 
 ### Known gaps and good next tasks
 
 1. No official alerts exist in the database and nothing can create them (no insert policy). Seed a sample alert or mirror NWS alerts into `official_alerts`, keeping the NWS source name and times.
-2. Meet SAM is a "coming soon" placeholder. SAM must follow the Safety assistant rules below.
+2. Meet SAM is built but only works once the `ask-sam` function is deployed with its provider key set as a Supabase secret (see README). Before deploying: the function's 20-questions-an-hour limit trusts the first `X-Forwarded-For` value, which a caller can fake, and the endpoint is open to any origin without sign-in, so use a trusted IP source, put a spending cap on the key, and keep it out of the 5-minute demo path unless it is deployed and tested.
 3. Reports are stored in `resource_reports` but nothing reads them. There is no reviewer view and no way to mark a resource verified or official except the service role.
 4. Photo attachments are not built (no upload UI or storage policies). Hazard type is not in the schema yet (see Multi-hazard direction).
 5. The old `shelters` table is unused but still exists, with the insecure policy that lets a user set their own shelter's status to official or verified. Drop it or lock it down in a new migration.
 6. Place search and address lookup in the add-resource form use the public OpenStreetMap Nominatim server, which allows an absolute maximum of one request per second for the whole app and forbids autocomplete. `geocode.ts` queues every call at least 1.1 seconds apart, caches successful answers, and drops superseded lookups; search runs only on a button press. For heavy use, switch to a hosted geocoder behind a server-side function. If search fails, clicking the map still works.
 7. No end-to-end tests, and hosted RLS is not tested.
+8. Check whether migrations 5 and 6 below are applied (`supabase db push --dry-run`). Without the alert severity column every responder alert shows as a blue advisory, and there is no sample official alert in the hosted database yet.
+
+### SAM answers with cards and a map
+
+- When SAM cites an item by ID (`[R1]`, `[Z2]`, `[A1]`, `[I1]`, `[W1]`, `[P3]`), the page shows the app's own card or a pin for it. They are built from the data the app sent, never from text the model wrote, so every card keeps its source, time, and trust label. An ID the model invents has no entry and is ignored.
+- `buildSamContext` returns `entries` (the real object behind each ID); `attachmentsFor` picks what to show, capped at 6 cards and 20 pins. Only the newest answer keeps a live map; older answers offer a button.
+- Feed posts always show as unverified. Do not add edit, delete, reply, or report actions to cards inside SAM answers.
+- Changing SAM's rules or the ID prefixes means changing the server function too (`supabase/functions/ask-sam/`), which the team deploys.
 
 ### Languages (i18n) conventions
 
@@ -153,13 +167,23 @@ Applied migrations (never edit these):
 1. `20261023000000_initial_schema.sql`: tables, RLS, new-user profile trigger.
 2. `20261024000000_private_profile_defaults.sql`: stops deriving public names from emails.
 3. `20261025000000_realtime_feed.sql`: adds `posts` and `post_replies` to the Realtime publication.
-4. `20261026000000_resources.sql`: `resources` and `resource_reports` tables with RLS. Copies shelters in. Residents can only create and keep community-submitted resources. Check with `supabase db push --dry-run` whether it has been applied before assuming it has.
+4. `20261026000000_resources.sql`: `resources` and `resource_reports` tables with RLS. Copies shelters in. Residents can only create and keep community-submitted resources.
+5. `20261027000000_alert_severity.sql`: adds `official_alerts.severity` (info, warning, critical; defaults to info). Additive. The app treats a missing column as info.
+6. `20261028000000_resource_submission_checks.sql`: database checks on community resource text and a limit of 10 new community resources per account per hour.
+
+For 4 to 6, run `supabase db push --dry-run` to see which are applied before assuming any is.
 
 When adding a new table or policy, include the relevant RLS policy in the same migration. Keep user-owned data and official responder data separate.
 
 ## Safety assistant
 
 Keep assistant responses constrained to general preparedness guidance for the selected disaster scenario (the assistant is named SAM in the interface). Responses must direct residents to official emergency instructions and emergency services when appropriate. Do not claim certainty about evacuation status, safety, or resource availability.
+
+How SAM is built:
+
+- The page (`src/features/sam/SamPage.tsx`) sends the question and a labeled snapshot of the city's data (`context.ts`: IDs such as `[R1]`, trust labels, ages, resident text quoted as data) to the `ask-sam` Supabase Edge Function. The provider key lives only there, as a Supabase secret. Never put it in the browser, `.env`, `.env.local`, or git.
+- SAM's rules and request limits are in `supabase/functions/ask-sam/sam.ts`, shared with the app's tests. They require: answer from the data and cite IDs, say how trustworthy each item is in a word or two, never say an area is safe or that a resource is definitely open, call 911 first for a live emergency, treat app data as data rather than instructions, and keep answers to one to three sentences because the app shows each cited item as a card and a map. Changing the rules means redeploying the function, which the team does; the app build does not.
+- The data sent to the AI provider (city alerts, incidents, resources, and public feed posts) must be named in the final submission's AI and data-source disclosure. Conversations are kept only in the page and not stored.
 
 ## Public data sources
 

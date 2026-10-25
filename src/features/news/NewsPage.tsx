@@ -15,7 +15,7 @@ function formatTime(value: string | null, notListed: string, locale?: string) {
   return value ? new Date(value).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }) : notListed
 }
 
-function NewsCard({ item, expired }: { item: NewsItem; expired: boolean }) {
+export function NewsCard({ item, expired }: { item: NewsItem; expired: boolean }) {
   const { t, lang } = useI18n()
   // Translating replaces the title and summary together until the person asks for the original again.
   const [translated, setTranslated] = useState<string[] | null>(null)

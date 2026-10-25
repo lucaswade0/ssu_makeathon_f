@@ -130,8 +130,9 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 .app { min-height: 100vh; }
 .disclaimer { margin: 0; padding: 8px 16px; background: var(--text); color: #fff; font-size: 13px; line-height: 1.4; text-align: center; }
 .app-header { position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; box-shadow: 0 1px 0 rgba(0, 0, 0, .12), 0 2px 8px rgba(0, 0, 0, .08); padding: 16px max(32px, calc((100% - 1168px) / 2)); background: var(--accent); color: var(--text); }
-.brand { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--text); font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
-.brand-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--text); color: var(--accent); }
+.brand { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0; border: 0; background: none; color: var(--text); font-size: 23px; font-weight: 800; letter-spacing: -0.02em; }
+.brand-mark { display: grid; place-items: center; width: 60px; height: 60px; }
+.brand-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .header-divider { width: 1px; height: 32px; background: rgba(29, 33, 37, .25); }
 .city-picker { position: relative; }
 .city-label { display: flex; align-items: center; gap: 8px; min-height: 44px; }
@@ -160,6 +161,8 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 
 @media (max-width: 720px) {
   .app-header { padding: 12px 16px; position: static; }
+  .brand { min-height: 48px; font-size: 20px; }
+  .brand-mark { width: 52px; height: 52px; }
   .header-divider { display: none; }
   .nav-rail button[aria-current='page']::before { left: 12px; right: 12px; top: 0; bottom: auto; width: auto; height: 3px; border-radius: 0 0 3px 3px; }
   .app-body, .app-body.compact { display: block; padding: 16px 16px 96px; }
@@ -395,14 +398,12 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 
 /* Meet SAM */
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.sam { display: grid; gap: 16px; max-width: 760px; }
-.sam-heading { display: flex; align-items: flex-start; gap: 14px; }
-.sam-heading h1 { margin: 0 0 4px; font-size: 24px; }
-.sam-heading p { margin: 0; }
-.sam-avatar { display: grid; place-items: center; flex: 0 0 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--text); }
-.sam-disclaimer { margin: 0; padding: 10px 14px; border: 1px solid var(--warning); border-radius: 10px; background: var(--warning-soft); font-size: 14px; }
+.sam { display: grid; gap: 12px; max-width: 760px; }
+.sam-toolbar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.sam-tool-note { flex-basis: 100%; color: var(--muted); font-size: 13px; }
+.sam-disclaimer { margin: 0; color: var(--muted); font-size: 12px; }
 .sam-suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
-.sam-suggestions button { border-radius: 999px; font-size: 14px; }
+.sam-suggestions button { border-radius: 999px; font-size: 13px; }
 .sam-chat { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
 .sam-message { max-width: 90%; padding: 12px 16px; border-radius: 16px; }
 .sam-message p { margin: 0; }
@@ -444,3 +445,16 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 .translation-banner svg { flex: none; }
 .translation-banner button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--text); color: #fff; font-weight: 700; }
 @media (max-width: 720px) { .translation-banner { padding: 10px 16px; } }
+
+.sam-attachments { display: grid; gap: 12px; margin-top: 12px; }
+.sam-attachments .official-card, .sam-attachments .resource-card, .sam-attachments .news-card { margin: 0; }
+.sam-attachments .news-card { padding: 20px; }
+.sam-attachments .resource-card { padding: 20px; }
+.sam-map-block { display: grid; gap: 12px; }
+.sam-map { height: 320px; overflow: hidden; border: 1px solid var(--border); border-radius: 16px; }
+.sam-open-map { display: inline-flex; align-items: center; justify-self: start; gap: 8px; min-height: 44px; border-radius: 999px; font-weight: 600; }
+.post-snippet { display: grid; gap: 8px; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
+.post-snippet p { margin: 0; }
+.post-snippet-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+.post-snippet-head strong { color: var(--text); font-size: 15px; }
+.sam-from-app { margin: 0; font-size: 12px; }

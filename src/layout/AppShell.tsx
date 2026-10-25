@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   HeartHandshake, LocateFixed, MapPin, MapPinned,
-  LogOut, MessageCircleQuestion, MessagesSquare, Newspaper, ShieldCheck, type LucideIcon,
+  LogOut, MessageCircleQuestion, MessagesSquare, Newspaper, type LucideIcon,
 } from 'lucide-react'
 
 import { communityApi } from '../features/community/api'
@@ -159,7 +159,7 @@ export function AppShell({ page, onNavigate, city, onCityChange, children }: App
 
       <header className="app-header">
         <button type="button" className="brand" onClick={() => onNavigate('feed')}>
-          <span className="brand-mark"><ShieldCheck size={22} aria-hidden="true" /></span>
+          <span className="brand-mark"><img src="/safety-sam-mark.png" alt="" aria-hidden="true" /></span>
           <span>Safety SAM</span>
         </button>
         <div className="header-spacer" />

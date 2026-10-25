@@ -53,7 +53,7 @@ function ReportForm({ resource, onDone }: { resource: Resource; onDone: () => vo
   </form>
 }
 
-function ResourceCard({ resource, now, canReport, onSignIn }: { resource: Resource; now: number; canReport: boolean; onSignIn: () => void }) {
+export function ResourceCard({ resource, now, canReport, onSignIn }: { resource: Resource; now: number; canReport: boolean; onSignIn: () => void }) {
   const { t, lang } = useI18n()
   const { session } = useCommunitySession()
   const remove = useRemoveResource()
