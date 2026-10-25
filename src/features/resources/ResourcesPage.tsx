@@ -3,7 +3,7 @@ import { BatteryCharging, Bus, Droplets, Flag, HeartPulse, House, PawPrint, Plus
 import { useCommunitySession } from '../community/session'
 import { cityCenter, hasLiveCoverage } from '../hazards/liveHazards'
 import { useSimulation } from '../simulation/context'
-import { checkResource } from './checks'
+import { checkResource, friendlyDbError } from './checks'
 import { addressFromMap } from './geocode'
 import { timeAgo } from './format'
 import { useCreateResource, useRemoveResource, useReportResource, useResources } from './hooks'
@@ -18,7 +18,7 @@ const icons: Record<ResourceCategory, LucideIcon> = {
 }
 
 function message(error: unknown) {
-  return typeof error === 'object' && error && 'message' in error ? String(error.message) : 'Something went wrong. Please try again.'
+  return typeof error === 'object' && error && 'message' in error ? friendlyDbError(String(error.message)) : 'Something went wrong. Please try again.'
 }
 
 function ReportForm({ resource, onDone }: { resource: Resource; onDone: () => void }) {

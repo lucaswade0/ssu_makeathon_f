@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkResource } from './checks'
+import { checkResource, friendlyDbError } from './checks'
 import { sampleExtras } from './sampleData'
 import type { Resource } from './schemas'
 
@@ -32,5 +32,12 @@ describe('checkResource', () => {
     expect(checkResource(good, [existing]).duplicate?.title).toBe('Free Bottled Water!')
     expect(checkResource({ ...good, category: 'medical' }, [existing]).duplicate).toBeNull()
     expect(checkResource({ ...good, latitude: 38.45 }, [existing]).duplicate).toBeNull()
+  })
+})
+
+describe('friendlyDbError', () => {
+  it('turns database rule names into the form messages and leaves other errors alone', () => {
+    expect(friendlyDbError('new row for relation "resources" violates check constraint "resources_community_no_links"')).toMatch(/Links aren/)
+    expect(friendlyDbError('You can add up to 10 resources per hour. Please try again later.')).toMatch(/10 resources per hour/)
   })
 })
