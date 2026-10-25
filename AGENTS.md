@@ -26,6 +26,7 @@ Start here. This section is the quickest way to get oriented; the rest of the fi
 | `src/features/map/` | Map page and the seeded sample data and types (`sampleData.ts`) |
 | `src/features/shelters/` | The map layer. It draws a pin for every resource category, using the same `resources` query as the Resources page |
 | `src/features/resources/` | Resources page, API, hooks, schemas, and sample data (all six categories) |
+| `src/features/i18n/` | Languages (English, Spanish, Vietnamese, Chinese): message dictionaries, `useI18n()`, header language menu, and the on-request Translate button |
 | `src/features/news/` | News page and the adapters (`newsItems.ts`) that turn each source into one card shape |
 | `src/features/simulation/` | The disaster simulation: scripted scenario (`scenario.ts`), controls reducer and context (`context.ts`), provider, floating bar |
 | `supabase/migrations/` | Database migrations. Never edit an applied one. |
@@ -37,6 +38,7 @@ Start here. This section is the quickest way to get oriented; the rest of the fi
 - Map: live incidents, evacuation zones, perimeters, ShakeMap rings, weather alerts, and shelters, each with source and fetch time.
 - News: a "Situation updates" list of public-data items with a hazard filter, source, time, and a "Data sources" panel.
 - Resources: a card grid with a type and status filter (shelter, water and food, medical, charging, pets, transportation). Each card shows status, source, last-confirmed time, and a stale label after 7 days. Signed-in residents can add community-submitted resources by searching for a place or clicking a map and dropping a draggable pin (a pin is required), report inaccurate or unsafe ones, and remove their own. Needs the `resources` migration applied.
+- Languages: the core interface (header, nav, feed, alert card, News, map tabs, Resources, simulation bar) is available in English, Spanish, Vietnamese and Simplified Chinese. The language is detected from the browser, can be changed in the header, and is remembered on the device. Posts, replies, alerts, News cards and resource descriptions translate automatically into the chosen language, using the browser's built-in on-device translator (recent desktop Chrome). Every machine translation is labeled and has "Show original" one tap away. Choosing a language starts the one-time model download (browsers only allow that after a click). With a saved language and no click yet, a banner under the header offers a "Download translation" button, the first click or key press on the page also starts the download, and until it finishes each text shows a Translate button. Language detection falls back to a built-in guess (English, Spanish, French, Portuguese, Vietnamese, Chinese) when the browser has no detector; in browsers without the translator, the online-translator link only appears for text that is not already in the reader's language. Browsers without the translator show a link to an online translator and a note that it sends the text to a third party. No database change.
 - Disaster simulation: a floating bar (bottom of every page) steps through a scripted, sample-only Santa Rosa wildfire. It drives the pinned alert and sample posts in the feed, incidents, zones, and shelters on the map, and cards in News. All simulated data is labeled sample data. There are no per-page sample toggles; the simulation is the only sample mode.
 - Tests: reducer, scenario, adapter, API, and server-rendered page tests (`npm test`).
 
@@ -49,6 +51,15 @@ Start here. This section is the quickest way to get oriented; the rest of the fi
 5. The old `shelters` table is unused but still exists, with the insecure policy that lets a user set their own shelter's status to official or verified. Drop it or lock it down in a new migration.
 6. Place search and address lookup in the add-resource form use the public OpenStreetMap Nominatim server, which allows an absolute maximum of one request per second for the whole app and forbids autocomplete. `geocode.ts` queues every call at least 1.1 seconds apart, caches successful answers, and drops superseded lookups; search runs only on a button press. For heavy use, switch to a hosted geocoder behind a server-side function. If search fails, clicking the map still works.
 7. No end-to-end tests, and hosted RLS is not tested.
+
+### Languages (i18n) conventions
+
+- Every user-facing string goes through `t()` (or `tp()` for counts) from `useI18n()`. Add the key to `src/features/i18n/messages.ts` in all four languages. `messages.test.ts` fails if a language is missing a key, has an extra key, an empty message, or different `{placeholders}`.
+- English is the source and the default when there is no provider, so tests render English unless they set a language.
+- The translations were written by the team and need review by native speakers before a public demo. Chinese is Simplified (`zh-Hans`); change `htmlLang` in `languages.ts` for Traditional.
+- Translation is automatic through `TranslateControl`, but it must always be labeled as machine translated with the original one tap away, and it must never replace the official source link. Several pieces of text (a title and its paragraphs) are passed as separate `texts` so the translator can't merge them.
+- Do not make the language detector a requirement: Chrome often has the translator without it.
+- Follow-ups not yet translated: names and text that come from data rather than the interface (resource and incident titles in the map side panel, NWS alert text in the map's Alerts tab, simulation step titles and narration), MapLibre's own "Data from OpenStreetMap" attribution, map button labels only update on the next map load, and right-to-left languages. Everything else in the interface is translated.
 
 ### Working with the Supabase CLI
 

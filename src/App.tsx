@@ -8,22 +8,27 @@ import type { CommunityPost, CommunityReply, PostType } from './features/communi
 import { AlertSummary, AlertTags } from './features/alerts/AlertSummary'
 import { nwsLink, nwsSeverity, responderParagraphs, safeHttpUrl, type AlertSeverity } from './features/alerts/alertFormat'
 import { alertParagraphs } from './features/hazards/alertText'
-import { cityCenter, hasLiveCoverage, NO_COVERAGE, topWeatherAlert, useEarthquakes, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
+import { cityCenter, hasLiveCoverage, topWeatherAlert, useEarthquakes, useFireIncidents, useWeatherAlerts } from './features/hazards/liveHazards'
 import { MapPage } from './features/map/MapPage'
 import { NewsPage } from './features/news/NewsPage'
 import { ResourcesPage } from './features/resources/ResourcesPage'
+import { useI18n } from './features/i18n/context'
+import { dateLocale } from './features/i18n/languages'
+import { TranslatableText } from './features/i18n/TranslatableText'
 import { useSimulation } from './features/simulation/context'
 import { AppShell, ComingSoon, type Page } from './layout/AppShell'
 import './App.css'
 
 function ErrorMessage({ error }: { error: unknown }) {
+  const { t } = useI18n()
   if (!error) return null
-  const message = typeof error === 'object' && 'message' in error ? String(error.message) : 'Something went wrong. Please try again.'
+  const message = typeof error === 'object' && 'message' in error ? String(error.message) : t('error.generic')
   return <p role="alert" className="error">{message}</p>
 }
 
 function Timestamp({ value }: { value: string }) {
-  return <time dateTime={value}>{new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</time>
+  const { lang } = useI18n()
+  return <time dateTime={value}>{new Date(value).toLocaleString(dateLocale(lang), { dateStyle: 'medium', timeStyle: 'short' })}</time>
 }
 
 function initials(name: string) {
@@ -31,22 +36,23 @@ function initials(name: string) {
 }
 
 function Account() {
+  const { t } = useI18n()
   const { session, loading, configured, error: sessionError } = useCommunitySession()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
-  const [notice, setNotice] = useState('')
+  const [confirmEmail, setConfirmEmail] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const signingUp = mode === 'signup'
   async function submit(event: FormEvent) {
     event.preventDefault()
-    setBusy(true); setError(null); setNotice('')
+    setBusy(true); setError(null); setConfirmEmail(false)
     try {
       if (signingUp) {
         const { needsConfirmation } = await communityApi.signUp(email, password, name)
-        if (needsConfirmation) setNotice('Account created. Confirm your email, then sign in.')
+        if (needsConfirmation) setConfirmEmail(true)
       } else await communityApi.signIn(email, password)
       setPassword('')
     }
@@ -55,55 +61,57 @@ function Account() {
   }
   async function signOut() {
     setBusy(true); setError(null)
-    try { await communityApi.signOut(); setNotice(''); setEmail(''); setPassword(''); setName('') }
+    try { await communityApi.signOut(); setConfirmEmail(false); setEmail(''); setPassword(''); setName('') }
     catch (failure) { setError(failure) }
     finally { setBusy(false) }
   }
   return <section className="panel" aria-labelledby="account-heading">
-    <h2 id="account-heading">{session ? 'Your account' : signingUp ? 'Create an account' : 'Sign in to post'}</h2>
+    <h2 id="account-heading">{session ? t('account.title.signedIn') : signingUp ? t('account.title.signUp') : t('account.title.signIn')}</h2>
     <ErrorMessage error={sessionError || error} />
-    {loading ? <p role="status">Checking your session…</p> : session ? <>
-      <p>You’re signed in. Your posts show your public display name.</p>
-      <button onClick={() => void signOut()} disabled={busy}>{busy ? 'Signing out…' : 'Sign out'}</button>
+    {loading ? <p role="status">{t('account.checking')}</p> : session ? <>
+      <p>{t('account.signedInNote')}</p>
+      <button onClick={() => void signOut()} disabled={busy}>{busy ? t('profile.signingOut') : t('profile.signOut')}</button>
     </> : <form onSubmit={submit}>
-      <p className="muted">Anyone can read the feed. Sign in to contribute.</p>
-      {signingUp && <label>Public display name<input value={name} onChange={e => setName(e.target.value)} required maxLength={80} autoComplete="nickname" disabled={busy} /></label>}
-      <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" disabled={busy} /></label>
-      <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={signingUp ? 8 : undefined} autoComplete={signingUp ? 'new-password' : 'current-password'} disabled={busy} /></label>
-      {signingUp && <p className="muted">Your email won’t appear on posts.</p>}
-      <button type="submit" disabled={busy || !configured || (signingUp && !name.trim())}>{busy ? 'Please wait…' : signingUp ? 'Create account' : 'Sign in'}</button>
-      <button type="button" className="link-button" disabled={busy} onClick={() => { setMode(signingUp ? 'signin' : 'signup'); setError(null); setNotice('') }}>{signingUp ? 'Have an account? Sign in' : 'New here? Create an account'}</button>
-      {notice && <p role="status">{notice}</p>}
+      <p className="muted">{t('account.readNote')}</p>
+      {signingUp && <label>{t('account.displayName')}<input value={name} onChange={e => setName(e.target.value)} required maxLength={80} autoComplete="nickname" disabled={busy} /></label>}
+      <label>{t('account.email')}<input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" disabled={busy} /></label>
+      <label>{t('account.password')}<input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={signingUp ? 8 : undefined} autoComplete={signingUp ? 'new-password' : 'current-password'} disabled={busy} /></label>
+      {signingUp && <p className="muted">{t('account.emailPrivate')}</p>}
+      <button type="submit" disabled={busy || !configured || (signingUp && !name.trim())}>{busy ? t('account.wait') : signingUp ? t('account.create') : t('profile.signIn')}</button>
+      <button type="button" className="link-button" disabled={busy} onClick={() => { setMode(signingUp ? 'signin' : 'signup'); setError(null); setConfirmEmail(false) }}>{signingUp ? t('account.haveOne') : t('account.newHere')}</button>
+      {confirmEmail && <p role="status">{t('account.confirmEmail')}</p>}
     </form>}
   </section>
 }
 
 function SignInPage({ onBack }: { onBack: () => void }) {
+  const { t } = useI18n()
   return <div className="sign-in-page">
-    <button type="button" className="link-button" onClick={onBack}>← Back to feed</button>
+    <button type="button" className="link-button" onClick={onBack}>{t('account.back')}</button>
     <Account />
   </div>
 }
 
 const postFilters = [
-  { id: 'all', label: 'All' },
-  { id: 'update', label: 'Updates' },
-  { id: 'question', label: 'Questions' },
-  { id: 'general', label: 'General' },
+  { id: 'all', label: 'filter.all' },
+  { id: 'update', label: 'filter.update' },
+  { id: 'question', label: 'filter.question' },
+  { id: 'general', label: 'filter.general' },
 ] as const
 
 const postTypes = [
-  { id: 'update', label: 'Update', Icon: Megaphone },
-  { id: 'question', label: 'Question', Icon: CircleHelp },
-  { id: 'general', label: 'General', Icon: MessageCircle },
+  { id: 'update', label: 'type.update', Icon: Megaphone },
+  { id: 'question', label: 'type.question', Icon: CircleHelp },
+  { id: 'general', label: 'type.general', Icon: MessageCircle },
 ] as const
 
 function PostComposer({ city }: { city: string }) {
+  const { t } = useI18n()
   const { session } = useCommunitySession()
   const [body, setBody] = useState('')
   const [type, setType] = useState<'update' | 'question' | 'general'>('update')
   const mutation = usePostMutation()
-  const name = String(session?.user.user_metadata?.display_name || 'Resident')
+  const name = String(session?.user.user_metadata?.display_name || t('post.resident'))
   async function submit(event: FormEvent) {
     event.preventDefault()
     try {
@@ -111,16 +119,16 @@ function PostComposer({ city }: { city: string }) {
       setBody('')
     } catch { /* The error is rendered below; keep the draft. */ }
   }
-  return <form className="composer" onSubmit={submit} aria-label={`Post to ${city}`}>
+  return <form className="composer" onSubmit={submit} aria-label={t('composer.label', { city })}>
     <span className="avatar" aria-hidden="true">{initials(name)}</span>
     <div className="composer-main">
-      <textarea className="composer-input" aria-label={`Post to ${city}`} placeholder={`What’s happening in ${city}?`} value={body} onChange={e => setBody(e.target.value)} rows={1} maxLength={5000} disabled={mutation.isPending} />
+      <textarea className="composer-input" aria-label={t('composer.label', { city })} placeholder={t('composer.placeholder', { city })} value={body} onChange={e => setBody(e.target.value)} rows={1} maxLength={5000} disabled={mutation.isPending} />
       <div className="composer-bar">
-        <div className="composer-types" role="radiogroup" aria-label="Post type">
-          {postTypes.map(({ id, label, Icon }) => <button key={id} type="button" role="radio" aria-checked={type === id} className="type-chip" disabled={mutation.isPending} onClick={() => setType(id)}><Icon size={16} aria-hidden="true" />{label}</button>)}
+        <div className="composer-types" role="radiogroup" aria-label={t('type.label')}>
+          {postTypes.map(({ id, label, Icon }) => <button key={id} type="button" role="radio" aria-checked={type === id} className="type-chip" disabled={mutation.isPending} onClick={() => setType(id)}><Icon size={16} aria-hidden="true" />{t(label)}</button>)}
         </div>
         {body.length > 4500 && <span className="muted">{body.length}/5000</span>}
-        <button type="submit" className="post-button" disabled={mutation.isPending || !body.trim()}>{mutation.isPending ? 'Posting…' : 'Post'}</button>
+        <button type="submit" className="post-button" disabled={mutation.isPending || !body.trim()}>{mutation.isPending ? t('composer.posting') : t('composer.post')}</button>
       </div>
       <ErrorMessage error={mutation.error} />
     </div>
@@ -135,26 +143,29 @@ function useEntryActions({ body, maxLength, onSave, onDelete, busy, post }: {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [draft, setDraft] = useState(body)
-  const noun = post ? 'post' : 'reply'
+  const { t } = useI18n()
+  const editLabel = post ? t('entry.editPost') : t('entry.editReply')
+  const deleteLabel = post ? t('entry.deletePost') : t('entry.deleteReply')
   async function save(event: FormEvent) {
     event.preventDefault()
     try { await onSave(draft); setEditing(false) } catch { /* Keep edits on failure. */ }
   }
   const buttons = <div className="actions">
-    <button className="ghost icon" aria-label={`Edit ${noun}`} title="Edit" disabled={busy || editing || deleting} onClick={() => { setDraft(body); setEditing(true) }}><Pencil size={18} aria-hidden="true" /></button>
-    <button className="ghost icon danger" aria-label={`Delete ${noun}`} title="Delete" disabled={busy || editing || deleting} onClick={() => setDeleting(true)}><Trash2 size={18} aria-hidden="true" /></button>
+    <button className="ghost icon" aria-label={editLabel} title={t('entry.edit')} disabled={busy || editing || deleting} onClick={() => { setDraft(body); setEditing(true) }}><Pencil size={18} aria-hidden="true" /></button>
+    <button className="ghost icon danger" aria-label={deleteLabel} title={t('entry.delete')} disabled={busy || editing || deleting} onClick={() => setDeleting(true)}><Trash2 size={18} aria-hidden="true" /></button>
   </div>
   const panel = editing ? <form onSubmit={save} className="edit-form">
-    <label>Edit {noun}<textarea value={draft} onChange={e => setDraft(e.target.value)} required maxLength={maxLength} rows={3} disabled={busy} autoFocus /></label>
-    <div className="row"><button type="submit" disabled={busy || !draft.trim()}>{busy ? 'Saving…' : 'Save changes'}</button><button type="button" disabled={busy} onClick={() => setEditing(false)}>Cancel</button></div>
-  </form> : deleting ? <div className="delete-confirm" role="alertdialog" aria-label={`Delete this ${noun}`}>
-    <p><strong>Delete this {post ? 'post and its replies' : 'reply'}?</strong> This can’t be undone.</p>
-    <div className="row"><button className="danger-solid" disabled={busy} onClick={() => void onDelete().then(() => setDeleting(false)).catch(() => {})}>{busy ? 'Deleting…' : 'Delete'}</button><button disabled={busy} onClick={() => setDeleting(false)}>Keep it</button></div>
+    <label>{editLabel}<textarea value={draft} onChange={e => setDraft(e.target.value)} required maxLength={maxLength} rows={3} disabled={busy} autoFocus /></label>
+    <div className="row"><button type="submit" disabled={busy || !draft.trim()}>{busy ? t('entry.saving') : t('entry.save')}</button><button type="button" disabled={busy} onClick={() => setEditing(false)}>{t('entry.cancel')}</button></div>
+  </form> : deleting ? <div className="delete-confirm" role="alertdialog" aria-label={deleteLabel}>
+    <p><strong>{post ? t('entry.confirmPost') : t('entry.confirmReply')}</strong> {t('entry.undone')}</p>
+    <div className="row"><button className="danger-solid" disabled={busy} onClick={() => void onDelete().then(() => setDeleting(false)).catch(() => {})}>{busy ? t('entry.deleting') : t('entry.delete')}</button><button disabled={busy} onClick={() => setDeleting(false)}>{t('entry.keep')}</button></div>
   </div> : null
   return { buttons, panel }
 }
 
 function ReplyItem({ reply }: { reply: CommunityReply }) {
+  const { t } = useI18n()
   const { session } = useCommunitySession()
   const mutation = useReplyMutation()
   const actions = useEntryActions({ body: reply.body, maxLength: 2000, busy: mutation.isPending,
@@ -163,16 +174,17 @@ function ReplyItem({ reply }: { reply: CommunityReply }) {
   const mine = session?.user.id === reply.author_id
   return <li className="reply">
     <div className="reply-head">
-      <div className="meta"><strong>{reply.author?.display_name || 'Resident'}</strong><Timestamp value={reply.created_at} />{reply.updated_at !== reply.created_at && <span>Edited</span>}</div>
+      <div className="meta"><strong>{reply.author?.display_name || t('post.resident')}</strong><Timestamp value={reply.created_at} />{reply.updated_at !== reply.created_at && <span>{t('post.edited')}</span>}</div>
       {mine && actions.buttons}
     </div>
-    <p className="body-text">{reply.body}</p>
+    <TranslatableText text={reply.body} className="body-text" />
     {mine && actions.panel}
     <ErrorMessage error={mutation.error} />
   </li>
 }
 
 function Replies({ postId, onSignIn }: { postId: string; onSignIn: () => void }) {
+  const { t } = useI18n()
   const { session } = useCommunitySession()
   const query = usePostReplies(postId)
   const mutation = useReplyMutation()
@@ -182,21 +194,22 @@ function Replies({ postId, onSignIn }: { postId: string; onSignIn: () => void })
     event.preventDefault()
     try { await mutation.mutateAsync({ action: 'create', postId, body }); setBody('') } catch { /* Preserve draft. */ }
   }
-  return <section className="replies" aria-label="Post replies">
-    {query.isPending && <p role="status">Loading replies…</p>}
-    {query.isError && <><ErrorMessage error={query.error} /><button onClick={() => void query.refetch()}>Retry replies</button></>}
-    {query.isSuccess && !replies.length && <p className="muted">No replies yet.</p>}
+  return <section className="replies" aria-label={t('reply.region')}>
+    {query.isPending && <p role="status">{t('reply.loading')}</p>}
+    {query.isError && <><ErrorMessage error={query.error} /><button onClick={() => void query.refetch()}>{t('reply.retry')}</button></>}
+    {query.isSuccess && !replies.length && <p className="muted">{t('reply.none')}</p>}
     <ul className="reply-list">{replies.map(reply => <ReplyItem key={reply.id} reply={reply} />)}</ul>
-    {query.hasNextPage && <button disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>Load more replies</button>}
+    {query.hasNextPage && <button disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>{t('reply.more')}</button>}
     {session ? <form key={session.user.id} onSubmit={submit}>
-      <label>Your reply<textarea rows={2} maxLength={2000} required value={body} onChange={e => setBody(e.target.value)} disabled={mutation.isPending} /></label>
-      <button type="submit" disabled={mutation.isPending || !body.trim()}>{mutation.isPending ? 'Replying…' : 'Publish reply'}</button>
+      <label>{t('reply.yours')}<textarea rows={2} maxLength={2000} required value={body} onChange={e => setBody(e.target.value)} disabled={mutation.isPending} /></label>
+      <button type="submit" disabled={mutation.isPending || !body.trim()}>{mutation.isPending ? t('reply.replying') : t('reply.publish')}</button>
       <ErrorMessage error={mutation.error} />
-    </form> : <button type="button" className="sign-in-button" onClick={onSignIn}>Sign in to reply</button>}
+    </form> : <button type="button" className="sign-in-button" onClick={onSignIn}>{t('reply.signIn')}</button>}
   </section>
 }
 
 function PostCard({ post, sample = false, onSignIn }: { post: CommunityPost; sample?: boolean; onSignIn: () => void }) {
+  const { t } = useI18n()
   const { session } = useCommunitySession()
   const mutation = usePostMutation()
   const [showReplies, setShowReplies] = useState(false)
@@ -204,21 +217,21 @@ function PostCard({ post, sample = false, onSignIn }: { post: CommunityPost; sam
     onSave: body => mutation.mutateAsync({ action: 'edit', id: post.id, input: { body } }),
     onDelete: () => mutation.mutateAsync({ action: 'delete', id: post.id }) })
   const mine = !sample && session?.user.id === post.author_id
-  return <article className="panel post" aria-label={`Post by ${post.author?.display_name || 'Resident'}`}>
+  return <article className="panel post" aria-label={t('post.by', { name: post.author?.display_name || t('post.resident') })}>
     <div className="post-head">
       <span className="avatar" aria-hidden="true">{initials(post.author?.display_name || 'Resident')}</span>
       <div>
-        <strong>{post.author?.display_name || 'Resident'}</strong>
-        <div className="meta"><Timestamp value={post.created_at} /><span className="post-type">{post.post_type}</span>{post.updated_at !== post.created_at && <span>Edited</span>}</div>
+        <strong>{post.author?.display_name || t('post.resident')}</strong>
+        <div className="meta"><Timestamp value={post.created_at} /><span className="post-type">{t(`type.${post.post_type}`)}</span>{post.updated_at !== post.created_at && <span>{t('post.edited')}</span>}</div>
       </div>
-      <span className="badge community">{sample ? 'Sample post' : 'Community · unverified'}</span>
+      <span className="badge community">{sample ? t('post.sample') : t('post.community')}</span>
       {mine && actions.buttons}
     </div>
-    <p className="body-text">{post.body}</p>
+    <TranslatableText text={post.body} className="body-text" />
     {mine && actions.panel}
     {!sample && <>
       <div className="post-footer">
-        <button className="reply-toggle" aria-expanded={showReplies} onClick={() => setShowReplies(!showReplies)}><MessageSquare size={14} aria-hidden="true" />{showReplies ? 'Hide replies' : 'View replies'}</button>
+        <button className="reply-toggle" aria-expanded={showReplies} onClick={() => setShowReplies(!showReplies)}><MessageSquare size={14} aria-hidden="true" />{showReplies ? t('post.hideReplies') : t('post.viewReplies')}</button>
       </div>
       <ErrorMessage error={mutation.error} />
       {showReplies && <Replies key={session?.user.id || 'guest'} postId={post.id} onSignIn={onSignIn} />}
@@ -227,6 +240,7 @@ function PostCard({ post, sample = false, onSignIn }: { post: CommunityPost; sam
 }
 
 function Feed({ city, onOpenMap, onSignIn }: { city: string; onOpenMap: () => void; onSignIn: () => void }) {
+  const { t, tp, lang } = useI18n()
   const sim = useSimulation()
   const sample = sim.active
   const { session, configured } = useCommunitySession()
@@ -254,44 +268,44 @@ function Feed({ city, onOpenMap, onSignIn }: { city: string; onOpenMap: () => vo
   const nws = !sample && !official && (!configured || !alert.isPending) ? topWeatherAlert(weather.data ?? []) : null
   const severity: AlertSeverity = nws ? nwsSeverity(nws.severity, nws.event) : official?.severity ?? 'info'
   return <>
-    <div className="row feed-heading"><h2>{sample ? 'Simulated feed' : `${city} feed`}</h2>
+    <div className="row feed-heading"><h2>{sample ? t('feed.simTitle') : t('feed.title', { city })}</h2>
       <div className="row">
-        {!sample && configured && !session && <button type="button" className="new-post-button" onClick={onSignIn}><SquarePen size={16} aria-hidden="true" />New post</button>}
-        {!sample && <button disabled={!configured || refreshing || feed.isFetching} onClick={() => void refresh()}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>}
+        {!sample && configured && !session && <button type="button" className="new-post-button" onClick={onSignIn}><SquarePen size={16} aria-hidden="true" />{t('feed.newPost')}</button>}
+        {!sample && <button disabled={!configured || refreshing || feed.isFetching} onClick={() => void refresh()}>{refreshing ? t('feed.refreshing') : t('feed.refresh')}</button>}
       </div>
     </div>
     {sample && <>
-      <p role="status" className="notice">Simulation running: these alerts and posts are sample data, not real events. Posting is turned off.</p>
-      <section className={`official-card sev-${severity}`} aria-label="Latest official alert">
+      <p role="status" className="notice">{t('feed.simNotice')}</p>
+      <section className={`official-card sev-${severity}`} aria-label={t('alert.region')}>
         <AlertTags kind="sample" severity={severity} />
         {official
           ? <AlertSummary alert={{ kind: 'sample', severity, title: official.title, paragraphs: responderParagraphs(official.instructions), issuedAt: official.issued_at, source: official.source_name }} />
-          : <p>No official alert has been issued yet in this simulation.</p>}
+          : <p>{t('feed.noSimAlert')}</p>}
       </section>
       <div className="incident-strip">
         <span className="live-dot" aria-hidden="true" />
-        <strong>{sim.state?.incidents.length ?? 0} active {(sim.state?.incidents.length ?? 0) === 1 ? 'wildfire' : 'wildfires'} · {sim.state?.zones.features.length ?? 0} evacuation {(sim.state?.zones.features.length ?? 0) === 1 ? 'zone' : 'zones'} in the simulation</strong>
-        <button type="button" onClick={onOpenMap}>View map</button>
-        <span className="muted">Sample data</span>
+        <strong>{tp('strip.fire', sim.state?.incidents.length ?? 0)} · {tp('strip.zone', sim.state?.zones.features.length ?? 0)} {t('strip.inSim')}</strong>
+        <button type="button" onClick={onOpenMap}>{t('feed.viewMap')}</button>
+        <span className="muted">{t('feed.sampleData')}</span>
       </div>
     </>}
     {!sample && <>
-      {!configured && <p role="status" className="notice">The live feed isn’t configured. Add your Supabase settings, or run the disaster simulation.</p>}
-      {(configured || nws) && <section className={`official-card sev-${severity}${expired ? ' expired' : ''}`} aria-label="Latest official alert">
+      {!configured && <p role="status" className="notice">{t('feed.notConfigured')}</p>}
+      {(configured || nws) && <section className={`official-card sev-${severity}${expired ? ' expired' : ''}`} aria-label={t('alert.region')}>
         <AlertTags kind={nws ? 'nws' : 'official'} severity={severity} label={nws ? 'weather alert' : 'alert'} />
-        {configured && alert.isPending && <p role="status">Checking official alerts…</p>}
-        {alert.isError && <><p>Official alerts could not be loaded. Check your local emergency authority for current instructions.</p><ErrorMessage error={alert.error} /></>}
+        {configured && alert.isPending && <p role="status">{t('feed.checkingAlerts')}</p>}
+        {alert.isError && <><p>{t('feed.alertsFailed')}</p><ErrorMessage error={alert.error} /></>}
         {nws
           ? <AlertSummary
             alert={{
               kind: 'nws', severity, title: nws.event, paragraphs: alertParagraphs(nws.instruction ?? nws.headline), issuedAt: nws.effective, expiresAt: nws.expires,
-              source: nws.senderName, sourceUrl: nwsLink(hasLiveCoverage(city) ? cityCenter(city) : undefined), note: `No local responder alert is posted for ${city}, so this is the most serious active National Weather Service alert.`,
+              source: nws.senderName, sourceUrl: nwsLink(hasLiveCoverage(city) ? cityCenter(city) : undefined), note: t('feed.nwsNote', { city }),
             }}
-            extra={(weather.data?.length ?? 0) > 1 ? <button type="button" className="link-button" onClick={onOpenMap}>+{(weather.data?.length ?? 0) - 1} more on the map</button> : null}
+            extra={(weather.data?.length ?? 0) > 1 ? <button type="button" className="link-button" onClick={onOpenMap}>{t('feed.moreOnMap', { n: (weather.data?.length ?? 0) - 1 })}</button> : null}
           />
           : <>
-            {alert.isSuccess && !official && <p>No official alert is listed here for {city}. This does not confirm that the area is safe.</p>}
-            {alert.isError && official && <p className="error">Showing the last loaded alert; it may be out of date.</p>}
+            {alert.isSuccess && !official && <p>{t('feed.noAlert', { city })}</p>}
+            {alert.isError && official && <p className="error">{t('feed.alertStale')}</p>}
             {official && <AlertSummary alert={{
               kind: 'official', severity, title: official.title, paragraphs: responderParagraphs(official.instructions), issuedAt: official.issued_at,
               expiresAt: official.expires_at, source: official.source_name, sourceUrl, expired: Boolean(expired),
@@ -301,28 +315,29 @@ function Feed({ city, onOpenMap, onSignIn }: { city: string; onOpenMap: () => vo
       <div className="incident-strip">
         <span className="live-dot" aria-hidden="true" />
         {fires.isSuccess && quakes.isSuccess && weather.isSuccess
-          ? <strong>{fires.data.length} active {fires.data.length === 1 ? 'wildfire' : 'wildfires'} · {quakes.data.length} recent {quakes.data.length === 1 ? 'earthquake' : 'earthquakes'} · {weather.data.length} weather {weather.data.length === 1 ? 'alert' : 'alerts'} near {city}</strong>
-          : <strong>{!hasLiveCoverage(city) ? NO_COVERAGE : fires.isError || quakes.isError || weather.isError ? 'Live hazard data is unavailable right now' : 'Checking live hazard data…'}</strong>}
-        <button type="button" onClick={onOpenMap}>View map</button>
-        <span className="muted">Sources: NIFC, USGS, National Weather Service</span>
+          ? <strong>{tp('strip.fire', fires.data.length)} · {tp('strip.quake', quakes.data.length)} · {tp('strip.weather', weather.data.length)} {t('strip.near', { city })}</strong>
+          : <strong>{!hasLiveCoverage(city) ? t('feed.noCoverage') : fires.isError || quakes.isError || weather.isError ? t('feed.hazardUnavailable') : t('feed.hazardChecking')}</strong>}
+        <button type="button" onClick={onOpenMap}>{t('feed.viewMap')}</button>
+        <span className="muted">{t('feed.sources')}</span>
       </div>
       {session && configured && <PostComposer key={session.user.id} city={city} />}
-      {configured && feed.isPending && <p role="status">Loading community posts…</p>}
-      {feed.isError && <section className="panel"><h3>Couldn’t load the feed</h3><ErrorMessage error={feed.error} /><p>Check your connection. If this is a new project, make sure the database migrations have been applied.</p><button onClick={() => void refresh()}>Try again</button></section>}
-      {feed.isError && posts.length > 0 && <p className="error">Showing previously loaded posts. They may be out of date.</p>}
-      {feed.isSuccess && !posts.length && <div className="panel"><h3>{typeFilter === 'all' ? 'No community posts yet' : `No ${typeFilter} posts yet`}</h3><p>{typeFilter === 'all' ? `Be the first to share an update or ask a question in ${city}.` : `Try another filter, or be the first to post one in ${city}.`}</p></div>}
+      {configured && feed.isPending && <p role="status">{t('feed.loading')}</p>}
+      {feed.isError && <section className="panel"><h3>{t('feed.loadFailed')}</h3><ErrorMessage error={feed.error} /><p>{t('feed.loadFailedHelp')}</p><button onClick={() => void refresh()}>{t('feed.tryAgain')}</button></section>}
+      {feed.isError && posts.length > 0 && <p className="error">{t('feed.stalePosts')}</p>}
+      {feed.isSuccess && !posts.length && <div className="panel"><h3>{typeFilter === 'all' ? t('feed.noPosts') : t('feed.noPostsFiltered')}</h3><p>{typeFilter === 'all' ? t('feed.beFirst', { city }) : t('feed.tryFilter', { city })}</p></div>}
     </>}
-    {(sample || configured) && <div className="post-filter" role="radiogroup" aria-label="Filter posts by type">
-      {postFilters.map(({ id, label }) => <button key={id} type="button" role="radio" aria-checked={typeFilter === id} className="type-chip" onClick={() => setTypeFilter(id)}>{label}</button>)}
+    {(sample || configured) && <div className="post-filter" role="radiogroup" aria-label={t('filter.label')}>
+      {postFilters.map(({ id, label }) => <button key={id} type="button" role="radio" aria-checked={typeFilter === id} className="type-chip" onClick={() => setTypeFilter(id)}>{t(label)}</button>)}
     </div>}
-    {sample && !posts.length && <p className="muted">No {typeFilter === 'all' ? '' : `${typeFilter} `}posts yet in this simulation step.</p>}
+    {sample && !posts.length && <p className="muted">{t('feed.noSimPosts')}</p>}
     <div className="posts">{posts.map(post => <PostCard key={post.id} post={post} sample={sample} onSignIn={onSignIn} />)}</div>
-    {!sample && feed.hasNextPage && <button disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>{feed.isFetchingNextPage ? 'Loading…' : 'Load older posts'}</button>}
-    {!sample && feed.dataUpdatedAt > 0 && <p className="muted">Last checked <Timestamp value={new Date(feed.dataUpdatedAt).toISOString()} /> · Updates every 30 seconds.</p>}
+    {!sample && feed.hasNextPage && <button disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>{feed.isFetchingNextPage ? t('feed.loadingMore') : t('feed.loadOlder')}</button>}
+    {!sample && feed.dataUpdatedAt > 0 && <p className="muted">{t('feed.lastChecked', { time: new Date(feed.dataUpdatedAt).toLocaleString(dateLocale(lang), { dateStyle: 'medium', timeStyle: 'short' }) })}</p>}
   </>
 }
 
 function App() {
+  const { t } = useI18n()
   const [page, setPage] = useState<Page>('feed')
   const [city, setCity] = useState('Santa Rosa')
 
@@ -332,13 +347,13 @@ function App() {
   }
 
   return <AppShell page={page} onNavigate={setPage} city={city} onCityChange={setCity}>
-    {page === 'feed' && <section className="feed" aria-label="Community feed">
+    {page === 'feed' && <section className="feed" aria-label={t('feed.region')}>
       <Feed key={city} city={city} onOpenMap={() => setPage('map')} onSignIn={openSignIn} />
     </section>}
     {page === 'map' && <MapPage city={city} />}
     {page === 'news' && <NewsPage city={city} />}
     {page === 'resources' && <ResourcesPage city={city} onSignIn={openSignIn} />}
-    {page === 'sam' && <ComingSoon title="Meet SAM" text="SAM will answer general preparedness questions and point you to official instructions. Coming soon." />}
+    {page === 'sam' && <ComingSoon title={t('nav.sam')} text={t('sam.soon')} />}
     {page === 'signin' && <SignInPage onBack={() => setPage('feed')} />}
   </AppShell>
 }

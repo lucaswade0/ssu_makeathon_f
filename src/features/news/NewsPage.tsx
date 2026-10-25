@@ -1,39 +1,45 @@
 import { useEffect, useState } from 'react'
+import { useI18n } from '../i18n/context'
+import { dateLocale, htmlLang } from '../i18n/languages'
+import { TranslateControl } from '../i18n/TranslateControl'
 import { ExternalLink } from 'lucide-react'
-import { clockTime, hasLiveCoverage, NO_COVERAGE, useEarthquakes, useEvacuationZones, useFireIncidents, useWeatherAlerts } from '../hazards/liveHazards'
+import { clockTime, hasLiveCoverage, useEarthquakes, useEvacuationZones, useFireIncidents, useWeatherAlerts } from '../hazards/liveHazards'
 import { useSimulation } from '../simulation/context'
-import { filterNews, hazardLabels, incidentItems, isExpired, sortNews, weatherItems, zoneItems, type NewsHazard, type NewsItem } from './newsItems'
+import { filterNews, incidentItems, isExpired, sortNews, weatherItems, zoneItems, type NewsHazard, type NewsItem } from './newsItems'
 
-const sources = [
-  'National Weather Service (weather alerts)',
-  'NIFC WFIGS (wildfire incidents)',
-  'Cal OES (evacuation orders and warnings)',
-  'USGS Earthquake Hazards Program (earthquakes)',
-]
+const hazards: NewsHazard[] = ['weather', 'fire', 'evacuation', 'earthquake']
 
-function formatTime(value: string | null) {
-  return value ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Time not listed'
+const sources = ['news.src.nws', 'news.src.nifc', 'news.src.caloes', 'news.src.usgs'] as const
+
+function formatTime(value: string | null, notListed: string, locale?: string) {
+  return value ? new Date(value).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }) : notListed
 }
 
 function NewsCard({ item, expired }: { item: NewsItem; expired: boolean }) {
+  const { t, lang } = useI18n()
+  // Translating replaces the title and summary together until the person asks for the original again.
+  const [translated, setTranslated] = useState<string[] | null>(null)
+  const [title, ...summary] = translated ?? [item.title, item.summary]
   return <article className={`news-card${expired ? ' expired' : ''}`} aria-label={item.title}>
     <div className="news-tags">
-      <span className="news-hazard">{hazardLabels[item.hazard]}</span>
-      {item.level && <span className={`zone-badge-inline ${item.level}`}>{item.level === 'order' ? 'ORDER' : 'WARNING'}</span>}
-      {expired && <span className="news-expired">Expired</span>}
-      <span className="badge community">{item.sample ? 'Sample data' : 'Public data'}</span>
+      <span className="news-hazard">{t(`news.hazard.${item.hazard}`)}</span>
+      {item.level && <span className={`zone-badge-inline ${item.level}`}>{item.level === 'order' ? t('news.order') : t('news.warning')}</span>}
+      {expired && <span className="news-expired">{t('news.expired')}</span>}
+      <span className="badge community">{item.sample ? t('alert.sample') : t('alert.public')}</span>
     </div>
-    <h3>{item.title}</h3>
-    <p className="body-text">{item.summary}</p>
+    <h3 lang={translated ? htmlLang[lang] : undefined}>{title}</h3>
+    <p className="body-text" lang={translated ? htmlLang[lang] : undefined}>{summary.join(' ')}</p>
+    <TranslateControl texts={[item.title, item.summary]} onTranslated={setTranslated} />
     <div className="news-meta">
       <span>{item.source}</span>
-      <time dateTime={item.time ?? undefined}>{formatTime(item.time)}</time>
-      <a href={item.url}>View source<ExternalLink size={14} aria-hidden="true" /></a>
+      <time dateTime={item.time ?? undefined}>{formatTime(item.time, t('news.timeNotListed'), dateLocale(lang))}</time>
+      <a href={item.url}>{t('news.viewSource')}<ExternalLink size={14} aria-hidden="true" /></a>
     </div>
   </article>
 }
 
 export function NewsPage({ city }: { city: string }) {
+  const { t } = useI18n()
   const sim = useSimulation()
   const showSample = sim.active
   const [filter, setFilter] = useState<'all' | NewsHazard>('all')
@@ -70,39 +76,39 @@ export function NewsPage({ city }: { city: string }) {
   const failed = live ? queries.filter(({ query }) => query.isError).map(({ name }) => name) : []
   const checkedAt = Math.max(0, ...queries.map(({ query }) => query.dataUpdatedAt))
 
-  return <section className="news" aria-label="News">
+  return <section className="news" aria-label={t('news.region')}>
     <div className="news-heading">
-      <h2>News for {city}</h2>
-      <p className="muted">Updates from public sources, shown with their source and time. This is not official guidance from Safety SAM.</p>
+      <h2>{t('news.title', { city })}</h2>
+      <p className="muted">{t('news.subtitle')}</p>
     </div>
 
     <div className="news-controls">
-      <label className="news-filter">Show
+      <label className="news-filter">{t('news.show')}
         <select value={filter} onChange={e => setFilter(e.target.value as typeof filter)}>
-          <option value="all">All updates</option>
-          {(Object.keys(hazardLabels) as NewsHazard[]).map(hazard => <option key={hazard} value={hazard}>{hazardLabels[hazard]}</option>)}
+          <option value="all">{t('news.all')}</option>
+          {hazards.map(hazard => <option key={hazard} value={hazard}>{t(`news.hazard.${hazard}`)}</option>)}
         </select>
       </label>
     </div>
 
-    {showSample && <p className="notice" role="status">Simulation running: these updates are sample data, not real events.</p>}
-    {!showSample && !covered && <p className="notice" role="status">{NO_COVERAGE}</p>}
-    {loading && <p role="status">Checking public sources…</p>}
-    {failed.length > 0 && <p role="alert" className="error">Couldn’t reach {failed.join(', ')}. Showing updates from the other sources. Run the disaster simulation to see example data.</p>}
+    {showSample && <p className="notice" role="status">{t('news.simNotice')}</p>}
+    {!showSample && !covered && <p className="notice" role="status">{t('feed.noCoverage')}</p>}
+    {loading && <p role="status">{t('news.checking')}</p>}
+    {failed.length > 0 && <p role="alert" className="error">{t('news.failed', { sources: failed.join(', ') })}</p>}
 
     {items.length > 0
       ? <div className="news-list">{items.map(item => <NewsCard key={item.id} item={item} expired={isExpired(item, now)} />)}</div>
       : !loading && (showSample || covered) && <div className="panel">
-        <h3>No updates listed for {city}</h3>
-        <p>{filter === 'all' ? 'No public updates were found from these sources.' : `No ${hazardLabels[filter].toLowerCase()} updates were found.`} This does not confirm the area is safe. Check official sources.</p>
+        <h3>{t('news.emptyTitle', { city })}</h3>
+        <p>{filter === 'all' ? t('news.emptyAll') : t('news.emptyType')}</p>
       </div>}
 
-    {live && checkedAt > 0 && <p className="muted">Last checked {clockTime(checkedAt)} · Updates every 5 minutes.</p>}
+    {live && checkedAt > 0 && <p className="muted">{t('news.lastChecked', { time: clockTime(checkedAt) })}</p>}
 
     <details className="data-sources">
-      <summary>Data sources</summary>
-      <ul>{sources.map(source => <li key={source}>{source}: {showSample ? 'sample data shown' : 'live'}</li>)}</ul>
-      <p className="muted">Follow instructions from local officials. In an emergency, call 911.</p>
+      <summary>{t('news.dataSources')}</summary>
+      <ul>{sources.map(key => <li key={key}>{showSample ? t('news.sourceSample', { source: t(key) }) : t('news.sourceLive', { source: t(key) })}</li>)}</ul>
+      <p className="muted">{t('news.safetyNote')}</p>
     </details>
   </section>
 }

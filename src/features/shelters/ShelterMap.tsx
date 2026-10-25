@@ -1,12 +1,14 @@
 import Map, { Layer, Marker, NavigationControl, Source, type MapRef } from 'react-map-gl/maplibre'
 import type { ExpressionSpecification } from '@maplibre/maplibre-gl-style-spec'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { Activity, BatteryCharging, Bus, Droplets, Flame, HeartPulse, PawPrint, Tent, ThermometerSun, TriangleAlert, Utensils, type LucideIcon } from 'lucide-react'
 import type { PerimeterCollection } from '../hazards/liveHazards'
 import type { Incident, MapResourceCategory, MapSelection, ShakeMapCollection, Shelter, ZoneCollection } from '../map/sampleData'
+import { orderMarkers } from '../map/zoneMarkers'
+import { useI18n } from '../i18n/context'
 
 // Vite's dev bundling breaks MapLibre's default worker path, so point it at the file directly.
 setWorkerUrl(workerUrl)
@@ -46,7 +48,9 @@ type Props = {
 }
 
 export function ShelterMap({ shelters, incidents, zones, perimeters, shakeMaps, center, selection, onSelect }: Props) {
+  const { t } = useI18n()
   const mapRef = useRef<MapRef>(null)
+  const orders = useMemo(() => orderMarkers(zones), [zones])
 
   // Follow the selected city. The first render uses initialViewState, so this only moves on later changes.
   useEffect(() => {
@@ -80,7 +84,14 @@ export function ShelterMap({ shelters, incidents, zones, perimeters, shakeMaps, 
       initialViewState={{ latitude: center.lat, longitude: center.lng, zoom: 12 }}
       style={{ width: '100%', height: '100%' }}
       mapStyle="https://tiles.openfreemap.org/styles/positron"
-      attributionControl={{ compact: true, customAttribution: 'Wildfires: NIFC WFIGS · Earthquakes: USGS · Evacuation zones: Cal OES · Sample scenario: demo data' }}
+      // MapLibre's own button labels (zoom, compass, attribution) in the reader's language.
+      locale={{
+        'NavigationControl.ZoomIn': t('map.ctrl.zoomIn'),
+        'NavigationControl.ZoomOut': t('map.ctrl.zoomOut'),
+        'NavigationControl.ResetBearing': t('map.ctrl.reset'),
+        'AttributionControl.ToggleAttribution': t('map.ctrl.attribution'),
+      }}
+      attributionControl={{ compact: true, customAttribution: t('map.attribution') }}
       interactiveLayerIds={['zone-fill']}
       onClick={e => {
         const zoneId = e.features?.[0]?.properties?.zone_id
@@ -130,6 +141,17 @@ export function ShelterMap({ shelters, incidents, zones, perimeters, shakeMaps, 
         />
       </Source>
 
+      {/* The zone's real outline stays; the pulsing circle just makes an order impossible to miss. It sits just above the zone's
+          center so an incident marker in the middle of the zone (a fire, say) is not hidden behind it. */}
+      {orders.map(order => (
+        <Marker key={`order-${order.id}`} latitude={order.lat} longitude={order.lng} offset={[0, -42]}
+          onClick={e => { e.originalEvent.stopPropagation(); onSelect({ type: 'zone', id: order.id }) }}>
+          <button type="button" className={`order-marker${isSelected('zone', order.id) ? ' selected' : ''}`} aria-label={t('map.zoneTitle.order', { id: order.id })}>
+            <TriangleAlert size={22} aria-hidden="true" />
+          </button>
+        </Marker>
+      ))}
+
       {incidents.map(i => (
         <Marker key={i.id} latitude={i.latitude} longitude={i.longitude}
           onClick={e => { e.originalEvent.stopPropagation(); onSelect({ type: 'incident', id: i.id }) }}>
@@ -142,7 +164,7 @@ export function ShelterMap({ shelters, incidents, zones, perimeters, shakeMaps, 
       {shelters.map(s => (
         <Marker key={s.id} latitude={s.latitude} longitude={s.longitude}
           onClick={e => { e.originalEvent.stopPropagation(); onSelect({ type: 'shelter', id: s.id }) }}>
-          <button type="button" className={`map-marker shelter ${s.status}${isSelected('shelter', s.id) ? ' selected' : ''}`} aria-label={`${s.name} (${s.status.replace('_', ' ')})`}>
+          <button type="button" className={`map-marker shelter ${s.status}${isSelected('shelter', s.id) ? ' selected' : ''}`} aria-label={`${s.name} (${t(`status.${s.status}`)})`}>
             <Icon name={s.category ?? 'shelter'} />
           </button>
         </Marker>
