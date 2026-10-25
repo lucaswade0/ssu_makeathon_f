@@ -159,7 +159,7 @@ export function AppShell({ page, onNavigate, city, onCityChange, children }: App
 
       <header className="app-header">
         <button type="button" className="brand" onClick={() => onNavigate('feed')}>
-          <span className="brand-mark"><img src="/safety-sam-mark.png" alt="" aria-hidden="true" /></span>
+          <span className="brand-mark"><img src="/safety-sam-mark.svg" alt="" aria-hidden="true" /></span>
           <span>Safety SAM</span>
         </button>
         <div className="header-spacer" />
