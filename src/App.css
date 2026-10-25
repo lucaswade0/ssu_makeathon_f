@@ -380,6 +380,8 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 .official-card .alert-open, .official-card .alert-source, .official-card .link-button { color: var(--sev-ink); }
 .official-card .alert-line { color: var(--text); }
 .alert-modal .official-link { background: var(--sev); color: var(--sev-on); }
+.alert-modal .row { align-items: center; gap: 12px; }
+.alert-modal .row > * { box-sizing: border-box; min-height: 44px; margin: 0; }
 .alert-modal .alert-facts dd a { color: var(--sev-ink); }
 .official-card.expired { --sev: var(--muted); --sev-soft: var(--surface); --sev-border: var(--border); --sev-ink: var(--muted); }
 
