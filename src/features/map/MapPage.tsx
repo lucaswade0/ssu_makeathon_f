@@ -157,7 +157,8 @@ export function MapPage({ city }: { city: string }) {
       <section className="map-area" aria-label={t('nav.map')}>
         <ShelterMap shelters={shelters} incidents={incidents} zones={zoneCollection} perimeters={perimeters} shakeMaps={shakeMaps} center={center} selection={selection} onSelect={select} />
         {showSample && <p className="sample-banner" role="status">{t('map.simBanner')}</p>}
-        <details className="map-legend" open>
+        {/* Starts collapsed on phones, where the open legend covers half the map. */}
+        <details className="map-legend" open={typeof window === 'undefined' || !window.matchMedia?.('(max-width: 720px)').matches}>
           <summary>{t('map.legend')}</summary>
           <span><i className="swatch order" />{t('map.leg.order')}</span>
           <span><i className="swatch warning" />{t('map.leg.warning')}</span>

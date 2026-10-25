@@ -99,6 +99,21 @@ export function ShelterMap({ shelters, incidents, zones, perimeters, shakeMaps, 
       }}
       attributionControl={{ compact: true, customAttribution: t('map.attribution') }}
       interactiveLayerIds={['zone-fill']}
+      // MapLibre opens the credits on load; on phones that box covers the map, so start it folded behind its (i) button.
+      onLoad={e => {
+        if (!window.matchMedia?.('(max-width: 720px)').matches) return
+        // MapLibre opens them only once the sources' credits arrive (and may rebuild the control), so fold them the first time they show.
+        const container = e.target.getContainer()
+        const fold = () => {
+          const credits = container.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact-show')
+          if (!credits) return
+          credits.classList.remove('maplibregl-compact-show')
+          observer.disconnect()
+        }
+        const observer = new MutationObserver(fold)
+        observer.observe(container, { subtree: true, childList: true, attributeFilter: ['class'] })
+        fold()
+      }}
       onClick={e => {
         const zoneId = e.features?.[0]?.properties?.zone_id
         if (zoneId) onSelect({ type: 'zone', id: zoneId })
