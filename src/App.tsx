@@ -18,7 +18,7 @@ import { useI18n } from './features/i18n/context'
 import { dateLocale } from './features/i18n/languages'
 import { TranslatableText } from './features/i18n/TranslatableText'
 import { useSimulation } from './features/simulation/context'
-import { AppShell, type Page } from './layout/AppShell'
+import { AppShell, ProfilePage, type Page } from './layout/AppShell'
 import './App.css'
 
 function ErrorMessage({ error }: { error: unknown }) {
@@ -348,7 +348,7 @@ function App() {
     window.scrollTo(0, 0)
   }
 
-  return <AppShell page={page} onNavigate={setPage} city={city} onCityChange={setCity}>
+  return <AppShell page={page} onNavigate={setPage}>
     {page === 'feed' && <section className="feed" aria-label={t('feed.region')}>
       <Feed key={city} city={city} onOpenMap={() => setPage('map')} onSignIn={openSignIn} />
     </section>}
@@ -357,6 +357,7 @@ function App() {
     {page === 'resources' && <ResourcesPage city={city} onSignIn={openSignIn} />}
     {/* Stays mounted while hidden so the chat, and an answer still streaming, survive switching tabs. */}
     <div hidden={page !== 'sam'}><SamPage city={city} onOpenMap={() => setPage('map')} /></div>
+    {page === 'profile' && <ProfilePage city={city} onCityChange={setCity} onSignIn={openSignIn} />}
     {page === 'signin' && <SignInPage onBack={() => setPage('feed')} />}
   </AppShell>
 }

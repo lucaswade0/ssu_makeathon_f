@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { AlertSummary, AlertTags } from '../alerts/AlertSummary'
 import type { AlertView } from '../alerts/alertFormat'
 import { CommunityContext, type AuthState } from '../community/session'
-import { AppShell } from '../../layout/AppShell'
+import { AppShell, ProfilePage } from '../../layout/AppShell'
 import { NewsPage } from '../news/NewsPage'
 import { AddResource, ResourcesPage } from '../resources/ResourcesPage'
 import { sampleExtras } from '../resources/sampleData'
@@ -45,13 +45,13 @@ function page(node: React.ReactElement, lang: Language, { auth = signedOut, sim 
   ).replaceAll('<!-- -->', '')
 }
 
-const shell = (lang: Language, auth = signedOut) => page(<AppShell page="feed" onNavigate={() => {}} city={city} onCityChange={() => {}}>content</AppShell>, lang, { auth })
+const shell = (lang: Language, auth = signedOut) => page(<AppShell page="feed" onNavigate={() => {}}>content</AppShell>, lang, { auth })
 const running = { ...simulationReducer(idle, { type: 'start', now: Date.now() }), index: 3 }
 
 describe('app shell', () => {
   it('stays in English by default', () => {
-    const out = page(<AppShell page="feed" onNavigate={() => {}} city={city} onCityChange={() => {}}>x</AppShell>, 'en')
-    for (const word of ['Feed', 'News', 'Map', 'Resources', 'Meet SAM', 'Approximate location, may not be accurate.', 'Change']) expect(out).toContain(word)
+    const out = page(<AppShell page="feed" onNavigate={() => {}}>x</AppShell>, 'en')
+    for (const word of ['Feed', 'News', 'Map', 'Resources', 'Meet SAM']) expect(out).toContain(word)
   })
 
   it('shows the header and navigation in Spanish', () => {
@@ -60,9 +60,6 @@ describe('app shell', () => {
     expect(out).toContain('Noticias')
     expect(out).toContain('Recursos')
     expect(out).toContain('Conoce a SAM')
-    expect(out).toContain('Ubicación aproximada, puede no ser exacta.')
-    expect(out).toContain('Prototipo de preparación')
-    expect(out).toContain('llame al 911')
   })
 
   it('shows the header and navigation in Chinese', () => {
@@ -71,17 +68,18 @@ describe('app shell', () => {
     expect(out).toContain('新闻')
     expect(out).toContain('地图')
     expect(out).toContain('认识 SAM')
-    expect(out).toContain('请拨打 911')
   })
 
-  it('shows the profile menu label in Vietnamese', () => {
-    expect(shell('vi', signedIn)).toContain('Menu tài khoản của Rosa')
-    expect(shell('vi')).toContain('Đăng nhập')
+  it('shows the profile navigation label in Vietnamese', () => {
+    expect(shell('vi', signedIn)).toContain('Hồ sơ')
+    expect(shell('vi')).toContain('Hồ sơ')
   })
 
-  it('puts the language menu in the header, labeled in the reader’s language', () => {
-    expect(shell('es')).toContain('aria-label="Idioma"')
-    expect(shell('en')).toContain('aria-label="Language"')
+  it('puts location and language controls in the profile menu', () => {
+    const out = page(<ProfilePage city={city} onCityChange={() => {}} onSignIn={() => {}} />, 'es', { auth: signedIn })
+    expect(out).toContain('Santa Rosa')
+    expect(out).toContain('Ubicación aproximada, puede no ser exacta.')
+    expect(out).toContain('aria-label="Idioma"')
   })
 
   it('translates the simulation start button and the running bar', () => {

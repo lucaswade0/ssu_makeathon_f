@@ -51,6 +51,7 @@ export function SamPage({ city, onOpenMap = () => {} }: { city: string; onOpenMa
   const [messages, setMessages] = useState<Message[]>([])
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
+  const [expandedMapIndex, setExpandedMapIndex] = useState<number | null>(null)
   const abort = useRef<AbortController | null>(null)
 
   async function ask(question: string) {
@@ -63,6 +64,7 @@ export function SamPage({ city, onOpenMap = () => {} }: { city: string; onOpenMa
       .map(m => ({ role: m.role, content: m.text }))
     const context = snapshot()
     setDraft('')
+    setExpandedMapIndex(null)
     setBusy(true)
     setMessages(list => [...list, { role: 'user', text: q }, { role: 'assistant', text: '', entries: context.entries, simulated: context.simulated }])
     abort.current = new AbortController()
@@ -88,6 +90,7 @@ export function SamPage({ city, onOpenMap = () => {} }: { city: string; onOpenMa
 
   // Only the newest answer with a map keeps it live; older answers offer a button, so the chat never holds several maps.
   const lastMapIndex = messages.reduce((found, m, i) => (m.role === 'assistant' && m.entries && hasPins(attachmentsFor(m.text, m.entries).map) ? i : found), -1)
+  const visibleMapIndex = expandedMapIndex ?? lastMapIndex
 
   return <section className="sam" aria-label="Ask SAM">
     <div className="sam-toolbar">
@@ -111,7 +114,7 @@ export function SamPage({ city, onOpenMap = () => {} }: { city: string; onOpenMa
           : <p className="body-text">{m.text || (busy && i === messages.length - 1 ? 'SAM is thinking…' : '')}</p>}
         {m.role === 'assistant' && m.entries && !m.error && !(busy && i === messages.length - 1) && <SamAttachments
           attachments={attachmentsFor(m.text, m.entries)} city={city} simulated={Boolean(m.simulated)}
-          liveMap={i === lastMapIndex} onOpenMap={onOpenMap} />}
+          liveMap={i === visibleMapIndex} onShowMap={() => setExpandedMapIndex(i)} onOpenMap={onOpenMap} />}
       </li>)}
     </ol>
 

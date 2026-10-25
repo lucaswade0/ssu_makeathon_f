@@ -14,11 +14,12 @@ const SamMap = lazy(() => import('./SamMap'))
  * The map and resource cards for the items an answer cited. They are drawn from the app's own data, so each keeps its
  * source, time, and trust label. Only the newest answer keeps a live map (`liveMap`); older answers offer a button.
  */
-export function SamAttachments({ attachments, city, simulated, liveMap, onOpenMap }: {
+export function SamAttachments({ attachments, city, simulated, liveMap, onShowMap = () => {}, onOpenMap }: {
   attachments: Attachments
   city: string
   simulated: boolean
   liveMap: boolean
+  onShowMap?: () => void
   onOpenMap: () => void
 }) {
   const { t } = useI18n()
@@ -53,7 +54,7 @@ export function SamAttachments({ attachments, city, simulated, liveMap, onOpenMa
         {selected()}
         <button type="button" className="sam-open-map" onClick={onOpenMap}><MapPinned size={16} aria-hidden="true" />{t('sam.openMap')}</button>
       </div>
-      : <button type="button" className="sam-open-map" onClick={() => setShowMap(true)}><MapPinned size={16} aria-hidden="true" />{t('sam.showMap')}</button>)}
+      : <button type="button" className="sam-open-map" onClick={() => { setShowMap(true); onShowMap() }}><MapPinned size={16} aria-hidden="true" />{t('sam.showMap')}</button>)}
 
     {attachments.resources.map(resource => <ResourceCard key={resource.id} resource={resource} now={now} canReport={false} onSignIn={() => {}} />)}
 

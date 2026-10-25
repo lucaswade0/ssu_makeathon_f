@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import {
   HeartHandshake, LocateFixed, MapPin, MapPinned,
-  LogOut, MessageCircleQuestion, MessagesSquare, Newspaper, type LucideIcon,
+  LogOut, MessageCircleQuestion, MessagesSquare, Newspaper, UserRound, type LucideIcon,
 } from 'lucide-react'
 
 import { communityApi } from '../features/community/api'
@@ -14,7 +14,7 @@ import { LanguageMenu } from '../features/i18n/LanguageMenu'
 import { TranslationBanner } from '../features/i18n/TranslationBanner'
 import type { MessageKey } from '../features/i18n/messages'
 
-export type Page = 'feed' | 'news' | 'map' | 'resources' | 'sam' | 'signin'
+export type Page = 'feed' | 'news' | 'map' | 'resources' | 'sam' | 'profile' | 'signin'
 
 const navItems: { id: Page; label: MessageKey; Icon: LucideIcon }[] = [
   { id: 'feed', label: 'nav.feed', Icon: MessagesSquare },
@@ -22,6 +22,7 @@ const navItems: { id: Page; label: MessageKey; Icon: LucideIcon }[] = [
   { id: 'map', label: 'nav.map', Icon: MapPinned },
   { id: 'resources', label: 'nav.resources', Icon: HeartHandshake },
   { id: 'sam', label: 'nav.sam', Icon: MessageCircleQuestion },
+  { id: 'profile', label: 'nav.profile', Icon: UserRound },
 ]
 
 function CityPicker({ city, onChange }: { city: string; onChange: (city: string) => void }) {
@@ -92,88 +93,74 @@ function CityPicker({ city, onChange }: { city: string; onChange: (city: string)
   )
 }
 
-function ProfileMenu({ onSignIn }: { onSignIn: () => void }) {
+export function ProfilePage({ onSignIn, city, onCityChange }: { onSignIn: () => void; city: string; onCityChange: (city: string) => void }) {
   const { t } = useI18n()
   const { session, configured } = useCommunitySession()
-  const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!open) return
-    const close = (event: MouseEvent | KeyboardEvent) => {
-      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !ref.current?.contains(event.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', close)
-    document.addEventListener('keydown', close)
-    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close) }
-  }, [open])
-
-  if (!configured) return null
-  if (!session) return <button type="button" className="header-sign-in" onClick={onSignIn}>{t('profile.signIn')}</button>
+  if (!configured || !session) return <section className="panel profile-page" aria-labelledby="profile-heading">
+    <h1 id="profile-heading">{t('nav.profile')}</h1>
+    <p className="muted">{configured ? t('profile.signInPrompt') : t('profile.unavailable')}</p>
+    {configured && <button type="button" onClick={onSignIn}>{t('profile.signIn')}</button>}
+  </section>
 
   const name = String(session.user.user_metadata?.display_name || t('post.resident'))
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0).toUpperCase()).join('') || '?'
 
   async function signOut() {
     setBusy(true); setError('')
-    try { await communityApi.signOut(); setOpen(false) }
+    try { await communityApi.signOut() }
     catch { setError(t('profile.signOutFailed')) }
     finally { setBusy(false) }
   }
 
-  return (
-    <div className="profile-menu" ref={ref}>
-      <button type="button" className="profile-button" aria-label={t('profile.menuFor', { name })} aria-expanded={open} aria-haspopup="true" onClick={() => setOpen(!open)}>{initials}</button>
-      {open && (
-        <div className="profile-popover">
-          <p className="profile-name">{name}</p>
-          <p className="muted">{t('profile.publicName')}</p>
-          <button type="button" className="profile-signout" disabled={busy} onClick={() => void signOut()}>
-            <LogOut size={16} aria-hidden="true" />{busy ? t('profile.signingOut') : t('profile.signOut')}
-          </button>
-          {error && <p role="alert" className="error">{error}</p>}
-        </div>
-      )}
+  return <section className="profile-page" aria-labelledby="profile-heading">
+    <div className="profile-heading">
+      <span className="profile-avatar" aria-hidden="true">{initials}</span>
+      <div>
+        <h1 id="profile-heading">{name}</h1>
+        <p className="muted">{t('profile.publicName')}</p>
+      </div>
     </div>
-  )
+    <div className="profile-settings">
+      <div className="profile-setting">
+        <h2>{t('profile.location')}</h2>
+        <CityPicker city={city} onChange={onCityChange} />
+      </div>
+      <div className="profile-setting">
+        <h2>{t('language.label')}</h2>
+        <LanguageMenu />
+      </div>
+    </div>
+    <button type="button" className="profile-signout" disabled={busy} onClick={() => void signOut()}>
+      <LogOut size={16} aria-hidden="true" />{busy ? t('profile.signingOut') : t('profile.signOut')}
+    </button>
+    {error && <p role="alert" className="error">{error}</p>}
+  </section>
 }
 
 type AppShellProps = {
   page: Page
   onNavigate: (page: Page) => void
-  city: string
-  onCityChange: (city: string) => void
   children: ReactNode
 }
 
-export function AppShell({ page, onNavigate, city, onCityChange, children }: AppShellProps) {
+export function AppShell({ page, onNavigate, children }: AppShellProps) {
   const { t } = useI18n()
   const simulating = useSimulation().active
   return (
     <div className={`app${simulating ? ' sim-on' : ''}`}>
-      <p className="disclaimer">
-        {t('shell.disclaimer')}
-      </p>
-
-      <header className="app-header">
-        <button type="button" className="brand" onClick={() => onNavigate('feed')}>
-          <span className="brand-mark"><img src="/safety-sam-mark.png" alt="" aria-hidden="true" /></span>
-          <span>Safety SAM</span>
-        </button>
-        <div className="header-spacer" />
-        <LanguageMenu />
-        <span className="header-divider" aria-hidden="true" />
-        <CityPicker city={city} onChange={onCityChange} />
-        <span className="header-divider" aria-hidden="true" />
-        <ProfileMenu onSignIn={() => onNavigate('signin')} />
-      </header>
-
       <TranslationBanner />
 
       <div className={`app-body${page === 'map' ? ' compact' : ''}`}>
         <nav className="nav-rail" aria-label={t('nav.main')}>
+          <div className="nav-brand">
+            <button type="button" className="brand" onClick={() => onNavigate('feed')}>
+              <span className="brand-mark"><img src="/safety-sam-logo.png" alt="" aria-hidden="true" /></span>
+              <span>Safety SAM</span>
+            </button>
+          </div>
           <ul>
             {navItems.map(({ id, label, Icon }) => (
               <li key={id}>
