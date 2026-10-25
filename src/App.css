@@ -126,8 +126,30 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
   .map-page { grid-template-columns: 1fr; }
   .map-area { height: 60vh; }
 }
+/* Phone map controls (Watch Duty style): a list button top-left, Filters and Legend buttons top-right, the list as a slide-in panel. */
+.map-fab, .map-fab-stack, .map-pop, .map-scrim, .map-panel-close { display: none; }
 @media (max-width: 720px) {
-  .map-legend { left: 12px; bottom: 12px; max-height: calc(100% - 96px); overflow-y: auto; }
+  .map-area { height: calc(100dvh - 150px); min-height: 400px; }
+  .map-fab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 56px; min-height: 52px; padding: 6px 4px; border: 0; border-radius: 12px; background: var(--text); color: #fff; font-size: 10px; font-weight: 700; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
+  .map-fab[aria-expanded='true'] { background: var(--accent); color: var(--text); }
+  .map-menu { position: absolute; top: 12px; left: 12px; z-index: 2; }
+  /* Below MapLibre's zoom and compass buttons. */
+  .map-fab-stack { position: absolute; top: 132px; right: 10px; z-index: 2; display: grid; gap: 8px; }
+  .map-pop, .map-legend { position: absolute; top: 12px; left: 80px; right: 76px; bottom: auto; z-index: 3; max-height: calc(100% - 24px); overflow-y: auto; }
+  .map-pop { display: block; }
+  .map-pop .hazard-filters { box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
+  .map-legend summary { display: none; }
+  .map-legend:not([open]) { display: none; }
+  .sample-banner { left: 80px; right: 76px; }
+
+  .map-panel { position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; width: min(88vw, 400px); padding: 16px; overflow-y: auto; background: var(--bg); box-shadow: 4px 0 24px rgba(0, 0, 0, .25); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility .2s; }
+  .map-page.panel-open .map-panel { transform: none; visibility: visible; }
+  .map-panel > .hazard-filters { display: none; }
+  .map-panel-close { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 999px; }
+  .map-scrim { display: block; position: fixed; inset: 0; z-index: 55; padding: 0; border: 0; border-radius: 0; background: rgba(0, 0, 0, .35); }
+}
+@media (max-width: 720px) and (prefers-reduced-motion: reduce) {
+  .map-panel { transition: none; }
 }
 
 .app { min-height: 100vh; }

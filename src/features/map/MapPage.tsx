@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { List, Map as MapIcon, SlidersHorizontal, X } from 'lucide-react'
 import { useSimulation } from '../simulation/context'
 import { SIM_CITY } from '../simulation/scenario'
 import { useCommunitySession } from '../community/session'
@@ -23,6 +24,9 @@ const tabs: { id: MapTab; label: MessageKey }[] = [
 ]
 
 const tabFor: Record<MapSelection['type'], MapTab> = { incident: 'incidents', shelter: 'shelters', zone: 'alerts' }
+
+// Phones get Watch Duty-style map controls; desktop keeps the side panel and open legend.
+const isPhone = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(max-width: 720px)').matches)
 
 // "9 h ago" in the reader's language.
 function useAgo() {
@@ -105,6 +109,10 @@ export function MapPage({ city }: { city: string }) {
   const timeAgo = useAgo()
   const [tab, setTab] = useState<MapTab>('incidents')
   const [selection, setSelection] = useState<MapSelection | null>(null)
+  // Phone-only overlays. The CSS ignores panelOpen and filtersOpen on desktop.
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [legendOpen, setLegendOpen] = useState(() => !isPhone())
   const { configured } = useCommunitySession()
   const resourcesQuery = useResources(city)
 
@@ -143,6 +151,7 @@ export function MapPage({ city }: { city: string }) {
   function select(next: MapSelection) {
     setSelection(next)
     setTab(tabFor[next.type])
+    setPanelOpen(true)
   }
 
   function toggleHazard(id: HazardFilter) {
@@ -152,13 +161,40 @@ export function MapPage({ city }: { city: string }) {
 
   const isActive = (type: MapSelection['type'], id: string) => selection?.type === type && selection.id === id
 
+  // Rendered in the side panel on desktop and as a card over the map on phones; CSS shows one of them.
+  const filters = (
+    <fieldset className="hazard-filters">
+      <legend>{t('map.show')}</legend>
+      {hazardFilters.map(f => (
+        <button key={f.id} type="button" className={`hazard-chip ${f.id}${shown[f.id] ? ' on' : ''}`} aria-pressed={shown[f.id]} onClick={() => toggleHazard(f.id)}>
+          <span className="hazard-switch" aria-hidden="true" />
+          <Icon name={f.id} size={16} />
+          {t(`map.hazard.${f.id}`)}
+        </button>
+      ))}
+      {hiddenLabels.length > 0 && <p className="muted">{t('map.hidden', { list: hiddenLabels.join(', ') })}</p>}
+    </fieldset>
+  )
+
   return (
-    <div className="map-page">
+    <div className={`map-page${panelOpen ? ' panel-open' : ''}`}>
       <section className="map-area" aria-label={t('nav.map')}>
         <ShelterMap shelters={shelters} incidents={incidents} zones={zoneCollection} perimeters={perimeters} shakeMaps={shakeMaps} center={center} selection={selection} onSelect={select} />
         {showSample && <p className="sample-banner" role="status">{t('map.simBanner')}</p>}
-        {/* Starts collapsed on phones, where the open legend covers half the map. */}
-        <details className="map-legend" open={typeof window === 'undefined' || !window.matchMedia?.('(max-width: 720px)').matches}>
+        <button type="button" className="map-fab map-menu" aria-label={t('map.openList')} aria-controls="map-panel" aria-expanded={panelOpen} onClick={() => setPanelOpen(true)}>
+          <List size={22} aria-hidden="true" />
+        </button>
+        <div className="map-fab-stack">
+          <button type="button" className="map-fab" aria-expanded={filtersOpen} onClick={() => { setFiltersOpen(!filtersOpen); setLegendOpen(false) }}>
+            <SlidersHorizontal size={20} aria-hidden="true" /><span>{t('map.filters')}</span>
+          </button>
+          <button type="button" className="map-fab" aria-expanded={legendOpen} onClick={() => { setLegendOpen(!legendOpen); setFiltersOpen(false) }}>
+            <MapIcon size={20} aria-hidden="true" /><span>{t('map.legend')}</span>
+          </button>
+        </div>
+        {filtersOpen && <div className="map-pop map-filters-pop">{filters}</div>}
+        {/* Starts collapsed on phones, where the open legend covers half the map; there the Legend button opens it. */}
+        <details className="map-legend" open={legendOpen} onToggle={e => setLegendOpen(e.currentTarget.open)}>
           <summary>{t('map.legend')}</summary>
           <span><i className="swatch order" />{t('map.leg.order')}</span>
           <span><i className="swatch warning" />{t('map.leg.warning')}</span>
@@ -172,18 +208,12 @@ export function MapPage({ city }: { city: string }) {
         </details>
       </section>
 
-      <aside className="map-panel" aria-label={t('map.details')}>
-        <fieldset className="hazard-filters">
-          <legend>{t('map.show')}</legend>
-          {hazardFilters.map(f => (
-            <button key={f.id} type="button" className={`hazard-chip ${f.id}${shown[f.id] ? ' on' : ''}`} aria-pressed={shown[f.id]} onClick={() => toggleHazard(f.id)}>
-              <span className="hazard-switch" aria-hidden="true" />
-              <Icon name={f.id} size={16} />
-              {t(`map.hazard.${f.id}`)}
-            </button>
-          ))}
-          {hiddenLabels.length > 0 && <p className="muted">{t('map.hidden', { list: hiddenLabels.join(', ') })}</p>}
-        </fieldset>
+      {panelOpen && <button type="button" className="map-scrim" aria-label={t('map.closeList')} onClick={() => setPanelOpen(false)} />}
+      <aside id="map-panel" className="map-panel" aria-label={t('map.details')} onKeyDown={e => { if (e.key === 'Escape') setPanelOpen(false) }}>
+        <button type="button" className="map-panel-close" onClick={() => setPanelOpen(false)}>
+          <X size={20} aria-hidden="true" />{t('map.closeList')}
+        </button>
+        {filters}
 
         <div className="map-tabs" role="tablist" aria-label={t('map.lists')}>
           {tabs.map(item => (
