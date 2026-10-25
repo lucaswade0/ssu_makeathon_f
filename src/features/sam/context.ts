@@ -1,5 +1,5 @@
 import type { CommunityPost, OfficialAlert } from '../community/schemas'
-import type { WeatherAlert } from '../hazards/liveHazards'
+import { nearbyCities, type WeatherAlert } from '../hazards/liveHazards'
 import type { Incident, ZoneProperties } from '../map/sampleData'
 import { timeAgo } from '../resources/format'
 import { statusLabels, type Resource } from '../resources/schemas'
@@ -33,6 +33,8 @@ export function buildSamContext(input: SamInput): SamContext {
   const { now } = input
   const lines: string[] = [`CITY: ${oneLine(input.city)}`]
   const sources: Record<string, string> = {}
+  const nearby = nearbyCities(input.city)
+  if (nearby.length) lines.push(`NEARBY CITIES (approximate straight-line distance between city centers): ${nearby.map(c => `${c.name} ${c.km} km ${c.direction}`).join(', ')}`)
   if (input.simulated) lines.push('NOTE: a disaster SIMULATION is running. Everything below is sample data, not real events.')
 
   function section(title: string, prefix: string, items: string[][], labels: string[]) {

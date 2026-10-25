@@ -60,4 +60,12 @@ describe('buildSamContext', () => {
   it('flags simulation data', () => {
     expect(buildSamContext({ city: 'Santa Rosa', now, simulated: true }).text).toContain('SIMULATION is running')
   })
+
+  it('lists nearby cities with distance and direction, and leaves the line out for an unknown city', () => {
+    const line = buildSamContext({ city: 'Santa Rosa', now }).text.split('\n')[1]!
+    expect(line).toMatch(/^NEARBY CITIES .*: Sebastopol 10 km SW, Rohnert Park 11 km S, /)
+    expect(line).toMatch(/Petaluma 2\d km S/)
+    expect(line).not.toContain('Santa Rosa')
+    expect(buildSamContext({ city: 'Springfield', now }).text).not.toContain('NEARBY CITIES')
+  })
 })

@@ -9,6 +9,7 @@ import { useSimulation } from '../simulation/context'
 import { SIM_CITY } from '../simulation/scenario'
 import { askSam, citedIds, samConfigured, SamNotDeployedError } from './api'
 import { buildSamContext, type SamContext } from './context'
+import { FormattedAnswer } from './FormattedAnswer'
 
 type Message = { role: 'user' | 'assistant'; text: string; sources?: Record<string, string>; error?: boolean }
 
@@ -107,7 +108,9 @@ export function SamPage({ city }: { city: string }) {
 
     <ol className="sam-chat" aria-live="polite">
       {messages.map((m, i) => <li key={i} className={`sam-message ${m.role}${m.error ? ' error' : ''}`}>
-        <p className="body-text">{m.text || (busy && i === messages.length - 1 ? 'SAM is thinking…' : '')}</p>
+        {m.role === 'assistant' && m.text && !m.error
+          ? <FormattedAnswer text={m.text} />
+          : <p className="body-text">{m.text || (busy && i === messages.length - 1 ? 'SAM is thinking…' : '')}</p>}
         {m.role === 'assistant' && m.sources && citedIds(m.text).length > 0 && <p className="sam-sources">
           Sources: {citedIds(m.text).filter(id => m.sources![id]).map(id => <span key={id} className="badge community">{id} · {m.sources![id]}</span>)}
         </p>}

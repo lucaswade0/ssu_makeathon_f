@@ -48,6 +48,12 @@ Deno.serve(async req => {
     fallbacks: 'default',
     system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     messages: [...request.history, { role: 'user', content: userTurn(request) }],
+    tools: [{
+      type: 'web_search_20260209',
+      name: 'web_search',
+      max_uses: 2,
+      allowed_domains: ['socoemergency.org', 'weather.gov', 'fire.ca.gov', 'redcross.org', 'ready.gov'],
+    }],
   })
 
   const encoder = new TextEncoder()

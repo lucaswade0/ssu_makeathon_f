@@ -408,3 +408,7 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 .sam-form { position: sticky; bottom: 16px; display: flex; gap: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: 0 4px 16px rgba(0, 0, 0, .08); }
 .sam-form input { flex: 1; border: 0; }
 .sam-form button { display: inline-flex; align-items: center; gap: 6px; }
+
+.sam-answer { display: grid; gap: 8px; line-height: 1.5; }
+.sam-answer p, .sam-answer ul { margin: 0; }
+.sam-answer ul { padding-left: 20px; display: grid; gap: 4px; }
