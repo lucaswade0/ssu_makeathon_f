@@ -351,6 +351,7 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 .app.sim-on { padding-bottom: 240px; }
 @media (max-width: 720px) {
   .sim-start { right: 16px; bottom: 80px; }
+  .no-sim-start .sim-start { display: none; }
   .sim-bar { bottom: 72px; gap: 6px; padding: 12px 14px; }
   .sim-title { font-size: 16px; }
   /* Two lines of narration keep the bar from covering half a phone screen. */
