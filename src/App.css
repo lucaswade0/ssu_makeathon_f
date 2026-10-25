@@ -222,6 +222,13 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 .post-head { display: flex; align-items: center; gap: 12px; }
 .post-head > div { flex: 1; min-width: 0; }
 .post-head > .actions { flex: 0 0 auto; }
+@media (max-width: 720px) {
+  .post { padding: 20px; }
+  /* On phones the trust badge takes its own line under the name, so the name and date aren't squeezed into a sliver. */
+  .post-head { flex-wrap: wrap; row-gap: 8px; }
+  .post-head > div:not(.actions) { flex: 1 1 0; min-width: 120px; }
+  .post-head > .badge { order: 1; margin-left: 56px; }
+}
 .avatar { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 50%; background: #e4f4e8; color: var(--verified); font-size: 15px; font-weight: 700; }
 .post-type { display: inline-flex; align-items: center; gap: 4px; padding: 1px 10px; border-radius: 999px; background: #eef0f2; color: #4b545d; font-size: 12px; font-weight: 700; line-height: 1.6; }
 .post-type.update { background: var(--brand-soft); color: #6b4e00; }
