@@ -40,7 +40,7 @@ Deno.serve(async req => {
   if (typeof request === 'string') return reply(400, request)
 
   const stream = client.beta.messages.stream({
-    model: 'claude-opus-5-5',
+    model: 'claude-sonnet-5-5',
     max_tokens: 1_200,
     // Chat answers are short; low effort keeps them fast. On a safety-classifier decline, the API retries on a fallback model.
     output_config: { effort: 'low' },
