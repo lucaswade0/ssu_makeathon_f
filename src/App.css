@@ -187,7 +187,10 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 .post-head > div { flex: 1; min-width: 0; }
 .post-head > .actions { flex: 0 0 auto; }
 .avatar { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 50%; background: #e4f4e8; color: var(--verified); font-size: 15px; font-weight: 700; }
-.post-type { text-transform: capitalize; }
+.post-type { display: inline-flex; align-items: center; gap: 4px; padding: 1px 10px; border-radius: 999px; background: #eef0f2; color: #4b545d; font-size: 12px; font-weight: 700; line-height: 1.6; }
+.post-type.update { background: var(--brand-soft); color: #6b4e00; }
+.post-type.question { background: var(--official-soft); color: var(--official); }
+.post-type.general { background: #eef0f2; color: #4b545d; }
 .badge.community { padding: 2px 8px; border: 1px dashed var(--community); border-radius: 6px; color: var(--community); font-size: 12px; white-space: nowrap; }
 .reply-toggle { display: inline-flex; align-items: center; gap: 6px; justify-self: start; min-height: 44px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--bg); font-size: 14px; font-weight: 600; }
 .replies { padding-left: 56px; border-top: 0; margin-top: 0; padding-top: 0; }

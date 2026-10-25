@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { CircleHelp, Megaphone, MessageCircle, MessageSquare, Pencil, SquarePen, Trash2 } from 'lucide-react'
 import { communityApi } from './features/community/api'
 import { useCommunityFeed, useOfficialAlert, usePostMutation, usePostReplies, useReplyMutation } from './features/community/hooks'
+import { PostTypeTag } from './features/community/PostTypeTag'
 import { useCommunitySession } from './features/community/session'
 import type { CommunityPost, CommunityReply, PostType } from './features/community/schemas'
 import { AlertSummary, AlertTags } from './features/alerts/AlertSummary'
@@ -222,7 +223,7 @@ function PostCard({ post, sample = false, onSignIn }: { post: CommunityPost; sam
       <span className="avatar" aria-hidden="true">{initials(post.author?.display_name || 'Resident')}</span>
       <div>
         <strong>{post.author?.display_name || t('post.resident')}</strong>
-        <div className="meta"><Timestamp value={post.created_at} /><span className="post-type">{t(`type.${post.post_type}`)}</span>{post.updated_at !== post.created_at && <span>{t('post.edited')}</span>}</div>
+        <div className="meta"><Timestamp value={post.created_at} /><PostTypeTag type={post.post_type} />{post.updated_at !== post.created_at && <span>{t('post.edited')}</span>}</div>
       </div>
       <span className="badge community">{sample ? t('post.sample') : t('post.community')}</span>
       {mine && actions.buttons}
