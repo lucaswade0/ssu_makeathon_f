@@ -7,14 +7,14 @@ import { useEarthquakes, useEvacuationZones, useFireIncidents, useWeatherAlerts 
 import { useResources } from '../resources/hooks'
 import { useSimulation } from '../simulation/context'
 import { SIM_CITY } from '../simulation/scenario'
-import { askSam, citedIds, samConfigured, SamNotDeployedError } from './api'
+import { askSam, samConfigured, SamNotDeployedError } from './api'
 import { attachmentsFor, hasPins } from './attachments'
 import { buildSamContext, type SamContext, type SamEntry } from './context'
 import { SamAttachments } from './SamAttachments'
 import { FormattedAnswer } from './FormattedAnswer'
 import { SAM_SUGGESTIONS } from './suggestions'
 
-type Message = { role: 'user' | 'assistant'; text: string; sources?: Record<string, string>; entries?: Record<string, SamEntry>; simulated?: boolean; error?: boolean }
+type Message = { role: 'user' | 'assistant'; text: string; entries?: Record<string, SamEntry>; simulated?: boolean; error?: boolean }
 
 /** Returns a function that snapshots what SAM can see for the city, live or simulated, at the moment a question is asked. */
 function useSamContext(city: string): () => SamContext {
@@ -64,7 +64,7 @@ export function SamPage({ city, onOpenMap = () => {} }: { city: string; onOpenMa
     const context = snapshot()
     setDraft('')
     setBusy(true)
-    setMessages(list => [...list, { role: 'user', text: q }, { role: 'assistant', text: '', sources: context.sources, entries: context.entries, simulated: context.simulated }])
+    setMessages(list => [...list, { role: 'user', text: q }, { role: 'assistant', text: '', entries: context.entries, simulated: context.simulated }])
     abort.current = new AbortController()
     const append = (text: string, error = false) => setMessages(list => {
       const last = list.at(-1)!
@@ -110,11 +110,8 @@ export function SamPage({ city, onOpenMap = () => {} }: { city: string; onOpenMa
           ? <FormattedAnswer text={m.text} />
           : <p className="body-text">{m.text || (busy && i === messages.length - 1 ? 'SAM is thinking…' : '')}</p>}
         {m.role === 'assistant' && m.entries && !m.error && !(busy && i === messages.length - 1) && <SamAttachments
-          attachments={attachmentsFor(m.text, m.entries, { simulated: m.simulated })} city={city} simulated={Boolean(m.simulated)}
+          attachments={attachmentsFor(m.text, m.entries)} city={city} simulated={Boolean(m.simulated)}
           liveMap={i === lastMapIndex} onOpenMap={onOpenMap} />}
-        {m.role === 'assistant' && m.sources && citedIds(m.text).length > 0 && <p className="sam-sources">
-          Sources: {citedIds(m.text).filter(id => m.sources![id]).map(id => <span key={id} className="badge community">{id} · {m.sources![id]}</span>)}
-        </p>}
       </li>)}
     </ol>
 

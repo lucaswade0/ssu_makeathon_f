@@ -1,7 +1,4 @@
-import type { CommunityPost, OfficialAlert } from '../community/schemas'
-import type { WeatherAlert } from '../hazards/liveHazards'
 import type { Incident, Shelter, ZoneCollection } from '../map/sampleData'
-import { incidentItems, zoneItems, type NewsItem } from '../news/newsItems'
 import { resourceToShelter } from '../resources/sampleData'
 import type { Resource } from '../resources/schemas'
 import { citedIds } from './api'
@@ -10,18 +7,16 @@ import type { SamEntry } from './context'
 export const MAX_CARDS = 6
 export const MAX_PINS = 20
 
-export type AlertAttachment = { kind: 'official'; alert: OfficialAlert } | { kind: 'weather'; alert: WeatherAlert }
 type ZoneFeature = ZoneCollection['features'][number]
 
-/** What to show under an answer, drawn only from the app's own data. */
+/**
+ * What to show under an answer, drawn only from the app's own data: cards for the cited resources and a map of every cited
+ * place. Alerts and feed posts stay in the answer's text; they never become cards or pins.
+ */
 export type Attachments = {
-  alerts: AlertAttachment[]
   resources: Resource[]
   /** Every cited resource with a position, for the map (can be more than the cards shown). */
   mapResources: Resource[]
-  /** Incidents and zones, as the same cards the News page uses. */
-  news: NewsItem[]
-  posts: CommunityPost[]
   map: { shelters: Shelter[]; incidents: Incident[]; zones: ZoneFeature[] }
   /** True when there is nothing to show. */
   empty: boolean
@@ -30,37 +25,26 @@ export type Attachments = {
 export const hasPins = (map: Attachments['map']) => map.shelters.length + map.incidents.length + map.zones.length > 0
 
 /**
- * Picks cards and map pins for the items an answer cites, in the order it cites them, once each. An ID the model made up has
- * no entry, so it is ignored. Everything returned is the app's real data, never text written by the model.
+ * Picks resource cards and map pins for the items an answer cites, in the order it cites them, once each. An ID the model
+ * made up has no entry, so it is ignored. Everything returned is the app's real data, never text written by the model.
  */
-export function attachmentsFor(answer: string, entries: Record<string, SamEntry>, { simulated = false }: { simulated?: boolean } = {}): Attachments {
-  const result: Attachments = { alerts: [], resources: [], mapResources: [], news: [], posts: [], map: { shelters: [], incidents: [], zones: [] }, empty: true }
-  let cards = 0
-  const room = () => cards < MAX_CARDS
+export function attachmentsFor(answer: string, entries: Record<string, SamEntry>): Attachments {
+  const result: Attachments = { resources: [], mapResources: [], map: { shelters: [], incidents: [], zones: [] }, empty: true }
   const pinRoom = () => result.map.shelters.length + result.map.incidents.length + result.map.zones.length < MAX_PINS
 
   for (const id of citedIds(answer)) {
     const entry = entries[id]
     if (!entry) continue
     switch (entry.kind) {
-      case 'alert': if (room()) { result.alerts.push({ kind: 'official', alert: entry.alert }); cards++ } break
-      case 'weather': if (room()) { result.alerts.push({ kind: 'weather', alert: entry.alert }); cards++ } break
       case 'resource':
-        if (room()) { result.resources.push(entry.resource); cards++ }
+        if (result.resources.length < MAX_CARDS) result.resources.push(entry.resource)
         if (pinRoom()) { result.map.shelters.push(resourceToShelter(entry.resource)); result.mapResources.push(entry.resource) }
         break
-      case 'incident':
-        if (room()) { result.news.push(...incidentItems([entry.incident], simulated)); cards++ }
-        if (pinRoom()) result.map.incidents.push(entry.incident)
-        break
-      case 'zone':
-        if (room()) { result.news.push(...zoneItems([entry.zone], simulated)); cards++ }
-        if (entry.feature && pinRoom()) result.map.zones.push(entry.feature)
-        break
-      case 'post': if (room()) { result.posts.push(entry.post); cards++ } break
+      case 'incident': if (pinRoom()) result.map.incidents.push(entry.incident); break
+      case 'zone': if (entry.feature && pinRoom()) result.map.zones.push(entry.feature); break
     }
   }
-  result.empty = cards === 0 && !hasPins(result.map)
+  result.empty = result.resources.length === 0 && !hasPins(result.map)
   return result
 }
 

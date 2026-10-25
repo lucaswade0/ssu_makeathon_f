@@ -51,7 +51,7 @@ describe('context entries', () => {
 
 describe('attachmentsFor', () => {
   const { entries } = context()
-  const pick = (answer: string, simulated = false) => attachmentsFor(answer, entries, { simulated })
+  const pick = (answer: string) => attachmentsFor(answer, entries)
 
   it('shows nothing for an answer that cites nothing', () => {
     const result = pick('Pack water, a flashlight, and medications. Call 911 in an emergency.')
@@ -60,12 +60,21 @@ describe('attachmentsFor', () => {
     expect(hasPins(result.map)).toBe(false)
   })
 
-  it('shows the cited items by kind, from the app’s own data', () => {
+  it('shows only cited resources as cards, from the app’s own data', () => {
     const result = pick('Finley [R1] and the order [A1], the fire [I1], zone [Z1], a warning [W1] and a post [P1].')
     expect(result.resources.map(r => r.id)).toEqual([sampleResources[0]!.id])
-    expect(result.alerts.map(a => a.kind)).toEqual(['official', 'weather'])
-    expect(result.news.map(n => n.hazard)).toEqual(['fire', 'evacuation'])
-    expect(result.posts).toEqual([post])
+    expect(Object.keys(result).sort()).toEqual(['empty', 'map', 'mapResources', 'resources'])
+    expect(result.empty).toBe(false)
+  })
+
+  it('shows nothing for an answer that cites only alerts and posts', () => {
+    expect(pick('[A1] [W1] [P1]').empty).toBe(true)
+  })
+
+  it('shows a map with no cards for an answer that cites only incidents and zones', () => {
+    const result = pick('[I1] [Z1]')
+    expect(result.resources).toEqual([])
+    expect(hasPins(result.map)).toBe(true)
     expect(result.empty).toBe(false)
   })
 
@@ -91,15 +100,10 @@ describe('attachmentsFor', () => {
     expect(hasPins(pick('[A1] [W1] [P1]').map)).toBe(false)
   })
 
-  it('shows a zone card even when it has no shape, but pins nothing', () => {
+  it('shows nothing for a zone with no shape', () => {
     const noShape = attachmentsFor('[Z1]', context({ zoneFeatures: [] }).entries)
-    expect(noShape.news).toHaveLength(1)
     expect(hasPins(noShape.map)).toBe(false)
-  })
-
-  it('marks simulated items as sample data', () => {
-    expect(pick('[I1] [Z1]', true).news.every(n => n.sample)).toBe(true)
-    expect(pick('[I1] [Z1]', false).news.some(n => n.sample)).toBe(false)
+    expect(noShape.empty).toBe(true)
   })
 
   it('caps the number of cards, but still maps every cited place', () => {

@@ -9,7 +9,6 @@ import type { Incident } from '../map/sampleData'
 import { sampleResources } from '../resources/sampleData'
 import { attachmentsFor } from './attachments'
 import { buildSamContext } from './context'
-import { PostSnippet } from './PostSnippet'
 import { SamAttachments } from './SamAttachments'
 
 const now = Date.parse('2026-10-25T12:00:00Z')
@@ -23,7 +22,7 @@ const post = { id: 'p', author_id: 'u', city: 'Santa Rosa', post_type: 'question
 const { entries } = buildSamContext({ city: 'Santa Rosa', now, alert, incidents: [incident], resources: sampleResources, posts: [post] })
 
 function render(answer: string, { lang = 'en', simulated = false, liveMap = false }: { lang?: Language; simulated?: boolean; liveMap?: boolean } = {}) {
-  const attachments = attachmentsFor(answer, entries, { simulated })
+  const attachments = attachmentsFor(answer, entries)
   return renderToString(
     <QueryClientProvider client={new QueryClient()}>
       <CommunityContext.Provider value={signedOut}>
@@ -53,26 +52,22 @@ describe('SamAttachments', () => {
     expect(render('[R3]')).toContain('Community-submitted · unverified')
   })
 
-  it('shows the alert card with its urgency word', () => {
-    const out = render('There is an order [A1].')
-    expect(out).toContain('Evacuation order: Zone E1')
-    expect(out).toContain('Urgent')
-    expect(out).toContain('sev-critical')
-    expect(out).toContain('Read full alert')
+  it('shows no card for a cited alert or post', () => {
+    expect(render('There is an order [A1] and someone asked [P1].')).toBe('')
   })
 
-  it('shows incidents as news cards, marked as sample data in a simulation', () => {
-    expect(render('[I1]')).toContain('Public data')
-    expect(render('[I1]', { simulated: true })).toContain('Sample data')
-    expect(render('[I1]')).toContain('Wildfire · Test')
+  it('shows a cited incident only on the map, not as a card', () => {
+    const out = render('[I1]', { liveMap: true })
+    expect(out).toContain('Map of the places in this answer')
+    expect(out).not.toContain('Wildfire · Test')
   })
 
-  it('shows a post as unverified, with no edit, delete, or reply', () => {
-    const out = render('Someone asked [P1].')
-    expect(out).toContain('Is there water?')
-    expect(out).toContain('Community · unverified')
-    expect(out).not.toContain('Edit')
-    expect(out).not.toContain('Reply')
+  it('shows only the map and resource cards for a mixed answer', () => {
+    const out = render('[R1] [A1] [I1] [P1]', { liveMap: true })
+    expect(out).toContain('Finley Community Center')
+    expect(out).toContain('Map of the places in this answer')
+    expect(out).not.toContain('Evacuation order: Zone E1')
+    expect(out).not.toContain('Is there water?')
   })
 
   it('offers a map button for older answers and an open-map button for the live one', () => {
@@ -95,21 +90,5 @@ describe('SamAttachments', () => {
     expect(render('[R1] [I1]', { lang: 'es' })).toContain('Mostrar mapa')
     expect(render('[R1]', { lang: 'zh' })).toContain('内容来自应用的数据')
     expect(render('[R1] [I1]', { lang: 'vi', liveMap: true })).toContain('Mở trên trang Bản đồ')
-  })
-})
-
-describe('PostSnippet', () => {
-  const html = (sample: boolean) => renderToString(<I18nContext.Provider value={makeI18n('en', () => {})}><PostSnippet post={post} sample={sample} /></I18nContext.Provider>).replaceAll('<!-- -->', '')
-
-  it('marks a real post unverified and a simulated one as a sample', () => {
-    expect(html(false)).toContain('Community · unverified')
-    expect(html(true)).toContain('Sample post')
-  })
-
-  it('shows the author, the type tag, and the text', () => {
-    const out = html(false)
-    expect(out).toContain('Priya S.')
-    expect(out).toContain('post-type question')
-    expect(out).toContain('Is there water?')
   })
 })

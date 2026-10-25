@@ -44,7 +44,7 @@ Start here. This section is the quickest way to get oriented; the rest of the fi
 - Alerts: the pinned alert is a compact card colored by urgency (blue Advisory, amber Be ready, red Urgent, always with the word) that opens the full notice in a dialog, with a link to the source. With no responder alert, the most serious live NWS alert is pinned instead, labeled as public data. Responder alert severity needs the `alert_severity` migration.
 - Map evacuation orders: each order shows a pulsing red circle with an alert icon on top of its real zone outline. Warnings keep a dashed outline and no circle.
 - Posts: the post type (Update, Question, General) is a colored tag with an icon, next to the date.
-- Meet SAM: a chat that answers from the selected city's data and cites what it used by ID. Under each answer the app shows the cited items as real cards (alerts, resources, incidents and zones as News cards, unverified post cards) and a small tappable map. Answers are kept very short (one to three sentences) because the cards carry the details. See "Safety assistant". Needs the `ask-sam` function deployed.
+- Meet SAM: a chat that answers from the selected city's data and cites what it used by ID. Each answer shows only the short answer, a small tappable map of the cited places (resources, incidents, zones), and cards for the cited resources. Alerts and posts are not shown as cards, and there is no Sources line. Answers are kept very short (one to three sentences) because the cards carry the details. See "Safety assistant". Needs the `ask-sam` function deployed.
 - Disaster simulation: a floating bar (bottom of every page) steps through a scripted, sample-only Santa Rosa wildfire. It drives the pinned alert and sample posts in the feed, incidents, zones, and shelters on the map, and cards in News. All simulated data is labeled sample data. There are no per-page sample toggles; the simulation is the only sample mode.
 - Tests: reducer, scenario, adapter, API, translation, SAM, and server-rendered page tests (`npm test`, about 370 tests).
 
@@ -61,9 +61,9 @@ Start here. This section is the quickest way to get oriented; the rest of the fi
 
 ### SAM answers with cards and a map
 
-- When SAM cites an item by ID (`[R1]`, `[Z2]`, `[A1]`, `[I1]`, `[W1]`, `[P3]`), the page shows the app's own card or a pin for it. They are built from the data the app sent, never from text the model wrote, so every card keeps its source, time, and trust label. An ID the model invents has no entry and is ignored.
+- When SAM cites a resource (`[R1]`), the page shows the app's own resource card and a pin; a cited incident or zone (`[I1]`, `[Z2]`) appears only as a pin. Cited alerts and posts (`[A1]`, `[W1]`, `[P3]`) show nothing extra. They are built from the data the app sent, never from text the model wrote, so every card keeps its source, time, and trust label. An ID the model invents has no entry and is ignored.
 - `buildSamContext` returns `entries` (the real object behind each ID); `attachmentsFor` picks what to show, capped at 6 cards and 20 pins. Only the newest answer keeps a live map; older answers offer a button.
-- Feed posts always show as unverified. Do not add edit, delete, reply, or report actions to cards inside SAM answers.
+- Do not add edit, delete, reply, or report actions to cards inside SAM answers.
 - Changing SAM's rules or the ID prefixes means changing the server function too (`supabase/functions/ask-sam/`), which the team deploys.
 
 ### Languages (i18n) conventions
