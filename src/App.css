@@ -129,14 +129,16 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
 /* Phone map controls (Watch Duty style): a list button top-left, Filters and Legend buttons top-right, the list as a slide-in panel. */
 .map-fab, .map-fab-stack, .map-pop, .map-scrim, .map-panel-close { display: none; }
 @media (max-width: 720px) {
-  .map-area { height: calc(100dvh - 150px); min-height: 400px; }
+  /* Fills the screen down to just above the bottom nav (about 60px tall). */
+  .map-area { height: calc(100dvh - 92px); min-height: 400px; }
   .map-fab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 56px; min-height: 52px; padding: 6px 4px; border: 0; border-radius: 12px; background: var(--text); color: #fff; font-size: 10px; font-weight: 700; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
   .map-fab[aria-expanded='true'] { background: var(--accent); color: var(--text); }
   .map-menu { position: absolute; top: 12px; left: 12px; z-index: 2; }
-  /* Below MapLibre's zoom and compass buttons. */
-  .map-fab-stack { position: absolute; top: 132px; right: 10px; z-index: 2; display: grid; gap: 8px; }
+  /* Filters and Legend take the top-right corner; MapLibre's zoom buttons (taller on touch screens) move below them. */
+  .map-fab-stack { position: absolute; top: 12px; right: 10px; z-index: 2; display: grid; gap: 8px; }
   .map-pop, .map-legend { position: absolute; top: 12px; left: 80px; right: 76px; bottom: auto; z-index: 3; max-height: calc(100% - 24px); overflow-y: auto; }
   .map-pop { display: block; }
+  .map-area .maplibregl-ctrl-top-right { top: 124px; }
   .map-pop .hazard-filters { box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
   .map-legend summary { display: none; }
   .map-legend:not([open]) { display: none; }
@@ -195,9 +197,11 @@ button.danger-solid { border-color: var(--order); background: var(--order); colo
   .brand-mark { width: 44px; height: 44px; }
   .header-divider { display: none; }
   .nav-brand { display: none; }
-  .nav-rail button[aria-current='page']::before { left: 12px; right: 12px; top: 0; bottom: auto; width: auto; height: 3px; border-radius: 0 0 3px 3px; }
+  .nav-rail button[aria-current='page']::before, .compact .nav-rail button[aria-current='page']::before { left: 12px; right: 12px; top: 0; bottom: auto; width: auto; height: 3px; border-radius: 0 0 3px 3px; }
   /* Room for the bottom nav plus the floating simulation button, so the last items can scroll clear of both. */
   .app-body, .app-body.compact { display: block; padding: 16px 16px 152px; }
+  /* The map page has no content below the map, so it only needs room for the nav. */
+  .app-body.compact { padding-bottom: 76px; }
   .sam { height: calc(100dvh - 220px); min-height: 360px; }
   .nav-rail, .compact .nav-rail { position: fixed; inset: auto 0 0 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--border); padding: 2px 8px; }
   .nav-rail ul { grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
@@ -357,7 +361,11 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 .sim-speed select { width: auto; padding: 6px 8px; }
 .app.sim-on { padding-bottom: 240px; }
 @media (max-width: 720px) {
-  .sim-start { right: 16px; bottom: 80px; }
+  /* A 48px round icon on phones; the first tap slides out the label (see SimulationBar). */
+  .sim-start { right: 16px; bottom: 80px; justify-content: center; gap: 6px; width: 48px; padding: 0; font-size: 13px; }
+  .sim-start-label { display: none; }
+  .sim-start.expanded { width: auto; padding: 0 16px; }
+  .sim-start.expanded .sim-start-label { display: inline; }
   .no-sim-start .sim-start { display: none; }
   .sim-bar { bottom: 72px; gap: 6px; padding: 12px 14px; }
   .sim-title { font-size: 16px; }
