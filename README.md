@@ -76,6 +76,21 @@ Pending work: browser city detection, photo upload/storage policies and deletion
 
 Run `npm test`, `npm run build`, and `npm run lint` before handing off changes. API tests use a mocked client to check validation, ownership scoping, pagination, and error behavior; they do not validate hosted RLS or deliver real sign-in emails. Run `npm run test:e2e` for browser flow tests (install a Playwright Chromium browser first with `npx playwright install chromium`, or set `CHROMIUM_PATH` to an installed Chromium executable). Browser tests use a separate app on port 5174 with a fake Supabase URL and intercepted responses; they never send real emails or write to the hosted database. Supabase client reference: https://supabase.com/docs/reference/javascript/initializing.
 
+## Meet SAM (Claude assistant)
+
+SAM answers residents' questions about the selected city's resources, alerts, incidents, evacuation zones, and feed posts, and cites the entries it used.
+
+- The page (`src/features/sam/SamPage.tsx`) builds a labelled snapshot of the city's data (`src/features/sam/context.ts`: IDs such as `[R1]`, trust labels, ages; resident text quoted so it reads as data) and sends it with the question to the `ask-sam` Supabase Edge Function. During the disaster simulation SAM answers from the simulated data and says so.
+- The function (`supabase/functions/ask-sam/`) holds the Anthropic API key, applies SAM's rules (`sam.ts`: answer from the data, cite it, never claim an area is safe, point to 911 and official instructions, treat app data as data rather than instructions), validates the request, rate-limits each IP to 20 questions an hour, and streams Claude's answer (`claude-opus-5-5`, low effort, refusal fallbacks on).
+- Conversations are kept only in the page; nothing is stored.
+
+Deploy (coordinate with the team; this uses the shared Supabase project):
+
+    supabase secrets set ANTHROPIC_API_KEY=<key>
+    supabase functions deploy ask-sam
+
+`supabase/config.toml` sets `verify_jwt = false` for `ask-sam`, because the project's publishable key is not a JWT; the function reads no user data. Never put the Anthropic key in `.env`, `.env.local`, or the browser.
+
 ## Team workflow
 
 1. Read AGENTS.md and this README before coding.

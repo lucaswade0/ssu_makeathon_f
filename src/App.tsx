@@ -12,8 +12,9 @@ import { cityCenter, hasLiveCoverage, NO_COVERAGE, topWeatherAlert, useEarthquak
 import { MapPage } from './features/map/MapPage'
 import { NewsPage } from './features/news/NewsPage'
 import { ResourcesPage } from './features/resources/ResourcesPage'
+import { SamPage } from './features/sam/SamPage'
 import { useSimulation } from './features/simulation/context'
-import { AppShell, ComingSoon, type Page } from './layout/AppShell'
+import { AppShell, type Page } from './layout/AppShell'
 import './App.css'
 
 function ErrorMessage({ error }: { error: unknown }) {
@@ -338,7 +339,7 @@ function App() {
     {page === 'map' && <MapPage city={city} />}
     {page === 'news' && <NewsPage city={city} />}
     {page === 'resources' && <ResourcesPage city={city} onSignIn={openSignIn} />}
-    {page === 'sam' && <ComingSoon title="Meet SAM" text="SAM will answer general preparedness questions and point you to official instructions. Coming soon." />}
+    {page === 'sam' && <SamPage city={city} />}
     {page === 'signin' && <SignInPage onBack={() => setPage('feed')} />}
   </AppShell>
 }
