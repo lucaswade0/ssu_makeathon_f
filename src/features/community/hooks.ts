@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { communityApi } from './api'
 import { supabase } from '../../lib/supabase'
@@ -9,9 +9,11 @@ import type { FeedCursor, PostEdit, PostInput, PostType } from './schemas'
 export function useRealtimeInvalidate(table: 'posts' | 'post_replies' | 'resources', channelName: string, queryKey: readonly unknown[], enabled: boolean, matches?: (row: Record<string, unknown>) => boolean) {
   const client = useQueryClient()
   const keyString = JSON.stringify(queryKey)
+  // Supabase reuses a channel with the same name, so two pages watching one city would collide; make each one unique.
+  const uniqueName = `${channelName}:${useId()}`
   useEffect(() => {
     if (!supabase || !enabled) return
-    const channel = supabase.channel(channelName)
+    const channel = supabase.channel(uniqueName)
       .on('postgres_changes', { event: '*', schema: 'public', table }, payload => {
         // Deletes only carry the primary key, so refetch for those.
         if (matches && payload.eventType !== 'DELETE' && !matches(payload.new)) return
@@ -20,7 +22,7 @@ export function useRealtimeInvalidate(table: 'posts' | 'post_replies' | 'resourc
       .subscribe()
     return () => { void supabase?.removeChannel(channel) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client, table, channelName, keyString, enabled])
+  }, [client, table, uniqueName, keyString, enabled])
 }
 
 export function useCommunityFeed(city: string, postType?: PostType) {
