@@ -355,7 +355,8 @@ function App() {
     {page === 'map' && <MapPage city={city} />}
     {page === 'news' && <NewsPage city={city} />}
     {page === 'resources' && <ResourcesPage city={city} onSignIn={openSignIn} />}
-    {page === 'sam' && <SamPage city={city} onOpenMap={() => setPage('map')} />}
+    {/* Stays mounted while hidden so the chat, and an answer still streaming, survive switching tabs. */}
+    <div hidden={page !== 'sam'}><SamPage city={city} onOpenMap={() => setPage('map')} /></div>
     {page === 'signin' && <SignInPage onBack={() => setPage('feed')} />}
   </AppShell>
 }
