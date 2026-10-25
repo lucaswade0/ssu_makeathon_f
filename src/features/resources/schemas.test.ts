@@ -60,6 +60,23 @@ describe('stale handling', () => {
   })
 })
 
+describe('localized time', () => {
+  it('uses the browser’s wording for the reader’s language', () => {
+    expect(timeAgo('2026-10-24T17:15:00Z', now, 'es')).toBe('hace 45 minutos')
+    expect(timeAgo('2026-10-24T12:00:00Z', now, 'es')).toBe('hace 6 horas')
+    expect(timeAgo('2026-10-24T17:15:00Z', now, 'zh-Hans')).toContain('45')
+    expect(timeAgo('2026-10-20T18:00:00Z', now, 'vi')).toContain('4')
+  })
+
+  it('says "now" for something just confirmed', () => {
+    expect(timeAgo('2026-10-24T17:59:50Z', now, 'es')).toBe('este minuto')
+  })
+
+  it('stays English without a locale', () => {
+    expect(timeAgo('2026-10-24T17:15:00Z', now)).toBe('45 min ago')
+  })
+})
+
 describe('sample data', () => {
   it('covers all six categories and all three trust levels', () => {
     expect(new Set(sampleResources.map(r => r.category)).size).toBe(6)

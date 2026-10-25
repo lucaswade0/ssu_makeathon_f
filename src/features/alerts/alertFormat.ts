@@ -21,7 +21,7 @@ export function responderParagraphs(text: string | null | undefined): string[] {
   return text.replace(/\r\n?/g, '\n').split(/\n\s*\n/).map(part => part.trim()).filter(Boolean)
 }
 
-export const formatAlertTime = (value: string) => new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+export const formatAlertTime = (value: string, locale?: string) => new Date(value).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })
 
 
 // Only web links are ever rendered, so a bad value in the database can't become a javascript: link.

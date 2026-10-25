@@ -380,6 +380,8 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 .official-card .alert-open, .official-card .alert-source, .official-card .link-button { color: var(--sev-ink); }
 .official-card .alert-line { color: var(--text); }
 .alert-modal .official-link { background: var(--sev); color: var(--sev-on); }
+.alert-modal .row { align-items: center; gap: 12px; }
+.alert-modal .row > * { box-sizing: border-box; min-height: 44px; margin: 0; }
 .alert-modal .alert-facts dd a { color: var(--sev-ink); }
 .official-card.expired { --sev: var(--muted); --sev-soft: var(--surface); --sev-border: var(--border); --sev-ink: var(--muted); }
 
@@ -412,3 +414,30 @@ button.post-button:disabled { background: #d9dce0; color: #7b838b; opacity: 1; }
 .sam-answer { display: grid; gap: 8px; line-height: 1.5; }
 .sam-answer p, .sam-answer ul { margin: 0; }
 .sam-answer ul { padding-left: 20px; display: grid; gap: 4px; }
+.language-menu { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 8px 0 12px; border-radius: 999px; background: rgba(255, 255, 255, .6); color: var(--text); }
+.language-menu select { width: auto; min-height: 36px; padding: 0 4px; border: 0; background: transparent; font-size: 14px; font-weight: 600; cursor: pointer; }
+.language-menu select:focus-visible { outline: none; }
+.language-menu:focus-within { background: #fff; }
+/* The focus ring goes around the whole rounded pill, for keyboard use only, not as a box around the select inside it. */
+.language-menu:has(select:focus-visible) { outline: 3px solid var(--brand); outline-offset: 2px; }
+.translate-control { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin: 0; font-size: 13px; line-height: 1.4; }
+.translate-control p, p.translate-control { margin: 0; }
+.translate-button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 8px; border: 0; background: none; color: var(--official); font-size: 13px; font-weight: 600; }
+.translate-button:hover:not(:disabled) { text-decoration: underline; filter: none; }
+@media (max-width: 720px) {
+  .language-menu { padding-left: 8px; }
+}
+
+/* Evacuation order: a red circle with an alert icon at the center of the zone, pulsing to draw the eye. */
+.order-marker { position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 3px solid #fff; border-radius: 50%; background: var(--order); color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); cursor: pointer; }
+.order-marker::after { content: ''; position: absolute; inset: -3px; border: 3px solid var(--order); border-radius: 50%; opacity: 0; animation: order-pulse 2s ease-out infinite; pointer-events: none; }
+.order-marker.selected { outline: 3px solid var(--brand); outline-offset: 2px; }
+@keyframes order-pulse { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .order-marker::after { animation: none; opacity: 0; }
+}
+
+.translation-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px max(32px, calc((100% - 1168px) / 2)); background: var(--brand-soft); border-bottom: 1px solid var(--border); font-size: 14px; }
+.translation-banner svg { flex: none; }
+.translation-banner button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--text); color: #fff; font-weight: 700; }
+@media (max-width: 720px) { .translation-banner { padding: 10px 16px; } }

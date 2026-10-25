@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { MapPin, Search } from 'lucide-react'
+import { useI18n } from '../i18n/context'
 import { reversePlace, searchPlaces, type Place } from './geocode'
 
 // Vite's dev bundling breaks MapLibre's default worker path, so point it at the file directly.
@@ -20,6 +21,7 @@ type Props = {
 }
 
 export default function LocationPicker({ center, pin, onPin, onLabel }: Props) {
+  const { t } = useI18n()
   const mapRef = useRef<MapRef>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Place[] | null>(null)
@@ -32,7 +34,7 @@ export default function LocationPicker({ center, pin, onPin, onLabel }: Props) {
   async function search() {
     setSearching(true); setError(''); setResults(null)
     try { setResults(await searchPlaces(query, center)) }
-    catch { setError('Couldn’t search right now. Click the map to place the pin instead.') }
+    catch { setError(t('picker.searchFailed')) }
     finally { setSearching(false) }
   }
 
@@ -67,16 +69,16 @@ export default function LocationPicker({ center, pin, onPin, onLabel }: Props) {
   return <div className="location-picker">
     <div className="picker-search">
       <input
-        type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search for an address or place"
-        aria-label="Search for an address or place" disabled={searching}
+        type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={t('picker.placeholder')}
+        aria-label={t('picker.placeholder')} disabled={searching}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void search() } }}
       />
-      <button type="button" disabled={searching || query.trim().length < 3} onClick={() => void search()}><Search size={16} aria-hidden="true" />{searching ? 'Searching…' : 'Search'}</button>
+      <button type="button" disabled={searching || query.trim().length < 3} onClick={() => void search()}><Search size={16} aria-hidden="true" />{searching ? t('picker.searching') : t('picker.search')}</button>
     </div>
     {error && <p role="alert" className="error">{error}</p>}
     {results && (results.length === 0
-      ? <p role="status" className="muted">No places found. Try a nearby street or landmark, or click the map to place the pin.</p>
-      : <ul className="picker-results" aria-label="Search results">
+      ? <p role="status" className="muted">{t('picker.noResults')}</p>
+      : <ul className="picker-results" aria-label={t('picker.results')}>
         {results.map(place => <li key={`${place.lat},${place.lng},${place.label}`}>
           <button type="button" onClick={() => choose(place)}><MapPin size={16} aria-hidden="true" />{place.label}</button>
         </li>)}
@@ -94,13 +96,13 @@ export default function LocationPicker({ center, pin, onPin, onLabel }: Props) {
         <NavigationControl position="top-right" showCompass={false} />
         {pin && <Marker latitude={pin.lat} longitude={pin.lng} draggable anchor="bottom"
           onDragEnd={e => void movePin({ lat: e.lngLat.lat, lng: e.lngLat.lng })}>
-          <MapPin size={36} fill="#c2410c" color="#fff" aria-label="Resource location" />
+          <MapPin size={36} fill="#c2410c" color="#fff" aria-label={t('picker.pinLabel')} />
         </Marker>}
       </Map>
     </div>
-    {lookup === 'loading' && <p className="muted" role="status">Looking up the address…</p>}
-    {lookup === 'failed' && <p className="muted" role="status">Couldn’t look up the address. Type it in below.</p>}
-    {lookup === 'none' && <p className="muted" role="status">No address found at this spot. Type an address or landmark below.</p>}
-    <p className="muted">{pin ? `Pin placed at ${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)}. Drag it or click the map to move it.` : 'Search for the place, or click the map to drop a pin. A pin is required.'} Search by OpenStreetMap.</p>
+    {lookup === 'loading' && <p className="muted" role="status">{t('picker.lookingUp')}</p>}
+    {lookup === 'failed' && <p className="muted" role="status">{t('picker.lookupFailed')}</p>}
+    {lookup === 'none' && <p className="muted" role="status">{t('picker.noAddress')}</p>}
+    <p className="muted">{pin ? t('picker.pinPlaced', { coords: `${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)}` }) : t('picker.pinNeeded')} {t('picker.attribution')}</p>
   </div>
 }

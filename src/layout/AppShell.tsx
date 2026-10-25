@@ -9,18 +9,23 @@ import { useCommunitySession } from '../features/community/session'
 import { SimulationBar } from '../features/simulation/SimulationBar'
 import { useSimulation } from '../features/simulation/context'
 import { nearestCoveredCity } from '../features/hazards/liveHazards'
+import { useI18n } from '../features/i18n/context'
+import { LanguageMenu } from '../features/i18n/LanguageMenu'
+import { TranslationBanner } from '../features/i18n/TranslationBanner'
+import type { MessageKey } from '../features/i18n/messages'
 
 export type Page = 'feed' | 'news' | 'map' | 'resources' | 'sam' | 'signin'
 
-const navItems: { id: Page; label: string; Icon: LucideIcon }[] = [
-  { id: 'feed', label: 'Feed', Icon: MessagesSquare },
-  { id: 'news', label: 'News', Icon: Newspaper },
-  { id: 'map', label: 'Map', Icon: MapPinned },
-  { id: 'resources', label: 'Resources', Icon: HeartHandshake },
-  { id: 'sam', label: 'Meet SAM', Icon: MessageCircleQuestion },
+const navItems: { id: Page; label: MessageKey; Icon: LucideIcon }[] = [
+  { id: 'feed', label: 'nav.feed', Icon: MessagesSquare },
+  { id: 'news', label: 'nav.news', Icon: Newspaper },
+  { id: 'map', label: 'nav.map', Icon: MapPinned },
+  { id: 'resources', label: 'nav.resources', Icon: HeartHandshake },
+  { id: 'sam', label: 'nav.sam', Icon: MessageCircleQuestion },
 ]
 
 function CityPicker({ city, onChange }: { city: string; onChange: (city: string) => void }) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(city)
   const [locating, setLocating] = useState(false)
@@ -37,7 +42,7 @@ function CityPicker({ city, onChange }: { city: string; onChange: (city: string)
   // Asks for location once per click and keeps only the matched city name, never the coordinates.
   function locate() {
     if (!navigator.geolocation) {
-      setLocationNote('This browser can’t share your location. Type your city instead.')
+      setLocationNote(t('city.noGeo'))
       return
     }
     setLocating(true)
@@ -50,12 +55,12 @@ function CityPicker({ city, onChange }: { city: string; onChange: (city: string)
           onChange(match)
           setOpen(false)
         } else {
-          setLocationNote('You’re not near a city with live data yet (only Sonoma County in this demo). Type your city instead.')
+          setLocationNote(t('city.outside'))
         }
       },
       () => {
         setLocating(false)
-        setLocationNote('Location wasn’t shared. Type your city instead.')
+        setLocationNote(t('city.denied'))
       },
       { timeout: 10_000, maximumAge: 5 * 60_000 },
     )
@@ -67,20 +72,20 @@ function CityPicker({ city, onChange }: { city: string; onChange: (city: string)
         <MapPin size={20} aria-hidden="true" />
         <div>
           <p className="city-name">{city}</p>
-          <p className="city-caption">Approximate location, may not be accurate.{' '}
-            <button type="button" className="city-change" aria-expanded={open} onClick={() => { setDraft(city); setLocationNote(null); setOpen(!open) }}>Change</button>
+          <p className="city-caption">{t('city.caption')}{' '}
+            <button type="button" className="city-change" aria-expanded={open} onClick={() => { setDraft(city); setLocationNote(null); setOpen(!open) }}>{t('city.change')}</button>
           </p>
         </div>
       </div>
       {open && (
         <form className="city-popover" onSubmit={submit}>
           <button type="button" className="locate-button" onClick={locate} disabled={locating}>
-            <LocateFixed size={16} aria-hidden="true" />{locating ? 'Finding your location…' : 'Use my location'}
+            <LocateFixed size={16} aria-hidden="true" />{locating ? t('city.locating') : t('city.locate')}
           </button>
           {locationNote && <p role="status" className="muted">{locationNote}</p>}
-          <label>City<input value={draft} onChange={e => setDraft(e.target.value)} maxLength={120} required autoFocus /></label>
-          <button type="submit" disabled={!draft.trim()}>Show this city</button>
-          <p className="muted">Used for this session only. Your location history is not saved.</p>
+          <label>{t('city.label')}<input value={draft} onChange={e => setDraft(e.target.value)} maxLength={120} required autoFocus /></label>
+          <button type="submit" disabled={!draft.trim()}>{t('city.show')}</button>
+          <p className="muted">{t('city.sessionOnly')}</p>
         </form>
       )}
     </div>
@@ -88,6 +93,7 @@ function CityPicker({ city, onChange }: { city: string; onChange: (city: string)
 }
 
 function ProfileMenu({ onSignIn }: { onSignIn: () => void }) {
+  const { t } = useI18n()
   const { session, configured } = useCommunitySession()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -105,27 +111,27 @@ function ProfileMenu({ onSignIn }: { onSignIn: () => void }) {
   }, [open])
 
   if (!configured) return null
-  if (!session) return <button type="button" className="header-sign-in" onClick={onSignIn}>Sign in</button>
+  if (!session) return <button type="button" className="header-sign-in" onClick={onSignIn}>{t('profile.signIn')}</button>
 
-  const name = String(session.user.user_metadata?.display_name || 'Resident')
+  const name = String(session.user.user_metadata?.display_name || t('post.resident'))
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0).toUpperCase()).join('') || '?'
 
   async function signOut() {
     setBusy(true); setError('')
     try { await communityApi.signOut(); setOpen(false) }
-    catch { setError('Couldn’t sign out. Please try again.') }
+    catch { setError(t('profile.signOutFailed')) }
     finally { setBusy(false) }
   }
 
   return (
     <div className="profile-menu" ref={ref}>
-      <button type="button" className="profile-button" aria-label={`Account menu for ${name}`} aria-expanded={open} aria-haspopup="true" onClick={() => setOpen(!open)}>{initials}</button>
+      <button type="button" className="profile-button" aria-label={t('profile.menuFor', { name })} aria-expanded={open} aria-haspopup="true" onClick={() => setOpen(!open)}>{initials}</button>
       {open && (
         <div className="profile-popover">
           <p className="profile-name">{name}</p>
-          <p className="muted">Posts show this public name. Your email stays private.</p>
+          <p className="muted">{t('profile.publicName')}</p>
           <button type="button" className="profile-signout" disabled={busy} onClick={() => void signOut()}>
-            <LogOut size={16} aria-hidden="true" />{busy ? 'Signing out…' : 'Sign out'}
+            <LogOut size={16} aria-hidden="true" />{busy ? t('profile.signingOut') : t('profile.signOut')}
           </button>
           {error && <p role="alert" className="error">{error}</p>}
         </div>
@@ -143,11 +149,12 @@ type AppShellProps = {
 }
 
 export function AppShell({ page, onNavigate, city, onCityChange, children }: AppShellProps) {
+  const { t } = useI18n()
   const simulating = useSimulation().active
   return (
     <div className={`app${simulating ? ' sim-on' : ''}`}>
       <p className="disclaimer">
-        Preparedness prototype, not an official emergency service. Community posts are unverified. In an emergency, call 911.
+        {t('shell.disclaimer')}
       </p>
 
       <header className="app-header">
@@ -156,19 +163,23 @@ export function AppShell({ page, onNavigate, city, onCityChange, children }: App
           <span>Safety SAM</span>
         </button>
         <div className="header-spacer" />
+        <LanguageMenu />
+        <span className="header-divider" aria-hidden="true" />
         <CityPicker city={city} onChange={onCityChange} />
         <span className="header-divider" aria-hidden="true" />
         <ProfileMenu onSignIn={() => onNavigate('signin')} />
       </header>
 
+      <TranslationBanner />
+
       <div className={`app-body${page === 'map' ? ' compact' : ''}`}>
-        <nav className="nav-rail" aria-label="Main">
+        <nav className="nav-rail" aria-label={t('nav.main')}>
           <ul>
             {navItems.map(({ id, label, Icon }) => (
               <li key={id}>
                 <button type="button" aria-current={page === id ? 'page' : undefined} onClick={() => onNavigate(id)}>
                   <Icon size={22} strokeWidth={page === id ? 2.5 : 2} aria-hidden="true" />
-                  {label}
+                  {t(label)}
                 </button>
               </li>
             ))}

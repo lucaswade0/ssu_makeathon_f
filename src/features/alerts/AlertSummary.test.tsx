@@ -45,7 +45,7 @@ describe('AlertSummary card', () => {
   it('makes the source name on the card a link that opens in the same tab', () => {
     const out = html(<AlertSummary alert={{ ...alert, sourceUrl: 'https://forecast.weather.gov/x' }} />)
     expect(out).toMatch(/<a[^>]*href="https:\/\/forecast\.weather\.gov\/x"[^>]*>NWS San Francisco CA/)
-    expect(html(<AlertSummary alert={alert} />)).not.toContain('<a ')
+    expect(html(<AlertSummary alert={alert} />)).not.toContain('alert-source')
   })
 
   it('never opens a new tab from any alert link', () => {

@@ -5,23 +5,33 @@ import { cityCenter, hasLiveCoverage } from '../hazards/liveHazards'
 import { useSimulation } from '../simulation/context'
 import { checkResource, friendlyDbError } from './checks'
 import { addressFromMap } from './geocode'
+import { useI18n } from '../i18n/context'
+import { htmlLang } from '../i18n/languages'
+import { TranslatableText } from '../i18n/TranslatableText'
 import { timeAgo } from './format'
 import { useCreateResource, useRemoveResource, useReportResource, useResources } from './hooks'
+import { sourceLabel } from '../i18n/sourceLabel'
+import type { Vars } from '../i18n/context'
+import type { MessageKey } from '../i18n/messages'
+import { checkText } from './checkText'
 import { sampleResources } from './sampleData'
 import {
-  categories, categoryLabels, filterResources, isStale, reasonLabels, reportReasons, statusLabels, statuses,
+  categories, filterResources, isStale, reportReasons, statuses,
   type ReportReason, type Resource, type ResourceCategory, type ResourceFilter,
 } from './schemas'
+
+type T = (key: MessageKey, vars?: Vars) => string
 
 const icons: Record<ResourceCategory, LucideIcon> = {
   shelter: House, water_food: Droplets, medical: HeartPulse, charging: BatteryCharging, pets: PawPrint, transportation: Bus,
 }
 
-function message(error: unknown) {
-  return typeof error === 'object' && error && 'message' in error ? friendlyDbError(String(error.message)) : 'Something went wrong. Please try again.'
+function message(error: unknown, t: T) {
+  return typeof error === 'object' && error && 'message' in error ? checkText(friendlyDbError(String(error.message)), t) : t('error.generic')
 }
 
 function ReportForm({ resource, onDone }: { resource: Resource; onDone: () => void }) {
+  const { t } = useI18n()
   const report = useReportResource()
   const [reason, setReason] = useState<ReportReason>('inaccurate')
   const [details, setDetails] = useState('')
@@ -30,20 +40,21 @@ function ReportForm({ resource, onDone }: { resource: Resource; onDone: () => vo
     try { await report.mutateAsync({ id: resource.id, reason, details }) } catch { /* Shown below. */ }
   }
   if (report.isSuccess) return <div className="report-form" role="status">
-    <p>Thanks. Your report on “{resource.title}” was sent for review.</p>
-    <button type="button" onClick={onDone}>Close</button>
+    <p>{t('report.thanks', { title: resource.title })}</p>
+    <button type="button" onClick={onDone}>{t('report.close')}</button>
   </div>
-  return <form className="report-form" onSubmit={submit} aria-label={`Report ${resource.title}`}>
-    <label>What’s wrong?<select value={reason} onChange={e => setReason(e.target.value as ReportReason)} disabled={report.isPending}>
-      {reportReasons.map(r => <option key={r} value={r}>{reasonLabels[r]}</option>)}
+  return <form className="report-form" onSubmit={submit} aria-label={t('report.formLabel', { title: resource.title })}>
+    <label>{t('report.whatsWrong')}<select value={reason} onChange={e => setReason(e.target.value as ReportReason)} disabled={report.isPending}>
+      {reportReasons.map(r => <option key={r} value={r}>{t(`report.reason.${r}`)}</option>)}
     </select></label>
-    <label>Details (optional)<textarea rows={2} maxLength={1000} value={details} onChange={e => setDetails(e.target.value)} disabled={report.isPending} /></label>
-    <div className="row"><button type="submit" disabled={report.isPending}>{report.isPending ? 'Sending…' : 'Send report'}</button><button type="button" disabled={report.isPending} onClick={onDone}>Cancel</button></div>
-    {report.isError && <p role="alert" className="error">{message(report.error)}</p>}
+    <label>{t('report.details')}<textarea rows={2} maxLength={1000} value={details} onChange={e => setDetails(e.target.value)} disabled={report.isPending} /></label>
+    <div className="row"><button type="submit" disabled={report.isPending}>{report.isPending ? t('report.sending') : t('report.send')}</button><button type="button" disabled={report.isPending} onClick={onDone}>{t('entry.cancel')}</button></div>
+    {report.isError && <p role="alert" className="error">{message(report.error, t)}</p>}
   </form>
 }
 
 function ResourceCard({ resource, now, canReport, onSignIn }: { resource: Resource; now: number; canReport: boolean; onSignIn: () => void }) {
+  const { t, lang } = useI18n()
   const { session } = useCommunitySession()
   const remove = useRemoveResource()
   const [reporting, setReporting] = useState(false)
@@ -52,22 +63,22 @@ function ResourceCard({ resource, now, canReport, onSignIn }: { resource: Resour
   const mine = Boolean(session) && session?.user.id === resource.author_id && resource.status === 'community_submitted'
   return <article className="resource-card" aria-label={resource.title}>
     <div className="resource-title"><Icon size={24} aria-hidden="true" /><h3>{resource.title}</h3></div>
-    <p className="muted resource-where">{categoryLabels[resource.category]} · {resource.location_text}</p>
-    <span className={`status-badge ${resource.status}`}>{statusLabels[resource.status]}</span>
-    <p className="resource-description">{resource.description}</p>
+    <p className="muted resource-where">{t(`category.${resource.category}`)} · {resource.location_text}</p>
+    <span className={`status-badge ${resource.status}`}>{t(`status.${resource.status}`)}</span>
+    <TranslatableText text={resource.description} className="resource-description" />
     <div className="resource-foot">
-      <span>{resource.source}</span>
-      <span>Confirmed {timeAgo(resource.last_confirmed_at, now)}{stale && <strong className="stale-tag"> · May be out of date</strong>}</span>
+      <span>{sourceLabel(resource.source, t)}</span>
+      <span>{t('resources.confirmed', { time: timeAgo(resource.last_confirmed_at, now, lang === 'en' ? undefined : htmlLang[lang]) })}{stale && <strong className="stale-tag"> · {t('resources.stale')}</strong>}</span>
       <div className="resource-actions">
         {canReport && (reporting
           ? null
           : session
-            ? <button type="button" className="report-button" onClick={() => setReporting(true)}><Flag size={14} aria-hidden="true" />Report inaccurate or unsafe</button>
-            : <button type="button" className="report-button" onClick={onSignIn}><Flag size={14} aria-hidden="true" />Sign in to report a problem</button>)}
-        {canReport && mine && <button type="button" className="ghost danger" disabled={remove.isPending} onClick={() => void remove.mutateAsync(resource.id).catch(() => {})}><Trash2 size={14} aria-hidden="true" />{remove.isPending ? 'Removing…' : 'Remove my submission'}</button>}
+            ? <button type="button" className="report-button" onClick={() => setReporting(true)}><Flag size={14} aria-hidden="true" />{t('resources.report')}</button>
+            : <button type="button" className="report-button" onClick={onSignIn}><Flag size={14} aria-hidden="true" />{t('resources.signInToReport')}</button>)}
+        {canReport && mine && <button type="button" className="ghost danger" disabled={remove.isPending} onClick={() => void remove.mutateAsync(resource.id).catch(() => {})}><Trash2 size={14} aria-hidden="true" />{remove.isPending ? t('resources.removing') : t('resources.remove')}</button>}
       </div>
     </div>
-    {remove.isError && <p role="alert" className="error">{message(remove.error)}</p>}
+    {remove.isError && <p role="alert" className="error">{message(remove.error, t)}</p>}
     {reporting && <ReportForm resource={resource} onDone={() => setReporting(false)} />}
   </article>
 }
@@ -75,6 +86,7 @@ function ResourceCard({ resource, now, canReport, onSignIn }: { resource: Resour
 const LocationPicker = lazy(() => import('./LocationPicker'))
 
 export function AddResource({ city, existing, onDone }: { city: string; existing: Resource[]; onDone: () => void }) {
+  const { t } = useI18n()
   const create = useCreateResource()
   const [category, setCategory] = useState<ResourceCategory>('water_food')
   const [title, setTitle] = useState('')
@@ -97,33 +109,34 @@ export function AddResource({ city, existing, onDone }: { city: string; existing
       onDone()
     } catch { /* Shown below; keep the draft. */ }
   }
-  return <form className="panel add-resource" onSubmit={submit} aria-label="Add a resource">
-    <h3>Add a resource in {city}</h3>
-    <p className="muted">Shown as community-submitted and unverified until a reviewer confirms it.</p>
-    <label>Type<select value={category} onChange={e => setCategory(e.target.value as ResourceCategory)} disabled={create.isPending}>
-      {categories.map(c => <option key={c} value={c}>{categoryLabels[c]}</option>)}
+  return <form className="panel add-resource" onSubmit={submit} aria-label={t('resources.add')}>
+    <h3>{t('add.title', { city })}</h3>
+    <p className="muted">{t('add.note')}</p>
+    <label>{t('resources.groupType')}<select value={category} onChange={e => setCategory(e.target.value as ResourceCategory)} disabled={create.isPending}>
+      {categories.map(c => <option key={c} value={c}>{t(`category.${c}`)}</option>)}
     </select></label>
-    <label>Name<input value={title} onChange={e => setTitle(e.target.value)} required maxLength={180} disabled={create.isPending} /></label>
-    <label>What’s available<textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} required maxLength={2000} disabled={create.isPending} /></label>
+    <label>{t('add.name')}<input value={title} onChange={e => setTitle(e.target.value)} required maxLength={180} disabled={create.isPending} /></label>
+    <label>{t('add.available')}<textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} required maxLength={2000} disabled={create.isPending} /></label>
     <fieldset className="pin-field">
-      <legend>Where is it?</legend>
-      <Suspense fallback={<p className="muted" role="status">Loading map…</p>}>
+      <legend>{t('add.where')}</legend>
+      <Suspense fallback={<p className="muted" role="status">{t('add.loadingMap')}</p>}>
         <LocationPicker center={center} pin={pin} onPin={setPin} onLabel={label => setLocation(current => addressFromMap(label, current, addressEdited))} />
       </Suspense>
     </fieldset>
-    <label>Address or landmark<input value={location} onChange={e => { setLocation(e.target.value); setAddressEdited(e.target.value.trim() !== '') }} required maxLength={240} disabled={create.isPending} placeholder="Fills in as you place the pin. You can edit it." /></label>
-    <div className="row"><button type="submit" disabled={create.isPending || !pin || !title.trim() || !description.trim() || !location.trim()}>{create.isPending ? 'Adding…' : 'Add resource'}</button><button type="button" disabled={create.isPending} onClick={onDone}>Cancel</button></div>
-    {!pin && <p className="muted" role="status">Place a pin on the map to add this resource.</p>}
-    {tried && checks && checks.problems.length > 0 && <ul role="alert" className="error check-list">{checks.problems.map(p => <li key={p}>{p}</li>)}</ul>}
+    <label>{t('add.address')}<input value={location} onChange={e => { setLocation(e.target.value); setAddressEdited(e.target.value.trim() !== '') }} required maxLength={240} disabled={create.isPending} placeholder={t('add.addressHint')} /></label>
+    <div className="row"><button type="submit" disabled={create.isPending || !pin || !title.trim() || !description.trim() || !location.trim()}>{create.isPending ? t('add.submitting') : t('add.submit')}</button><button type="button" disabled={create.isPending} onClick={onDone}>{t('entry.cancel')}</button></div>
+    {!pin && <p className="muted" role="status">{t('add.needPin')}</p>}
+    {tried && checks && checks.problems.length > 0 && <ul role="alert" className="error check-list">{checks.problems.map(p => <li key={p}>{checkText(p, t)}</li>)}</ul>}
     {tried && checks?.duplicate && <div role="alert" className="detail-warning">
-      <p>This looks like <strong>{checks.duplicate.title}</strong>, which is already listed here. Please don’t add the same place twice.</p>
-      <label className="check-confirm"><input type="checkbox" checked={confirmedDuplicate} onChange={e => setConfirmedDuplicate(e.target.checked)} />This is a different resource. Add it anyway.</label>
+      <p>{t('add.duplicate', { title: checks.duplicate.title })}</p>
+      <label className="check-confirm"><input type="checkbox" checked={confirmedDuplicate} onChange={e => setConfirmedDuplicate(e.target.checked)} />{t('add.duplicateConfirm')}</label>
     </div>}
-    {create.isError && <p role="alert" className="error">{message(create.error)}</p>}
+    {create.isError && <p role="alert" className="error">{message(create.error, t)}</p>}
   </form>
 }
 
 export function ResourcesPage({ city, onSignIn }: { city: string; onSignIn: () => void }) {
+  const { t, lang } = useI18n()
   const { session, configured } = useCommunitySession()
   const sim = useSimulation()
   const simulating = sim.active
@@ -142,39 +155,39 @@ export function ResourcesPage({ city, onSignIn }: { city: string; onSignIn: () =
   const loading = live && query.isPending
   const canReport = live
 
-  return <section className="resources" aria-label="Resources">
+  return <section className="resources" aria-label={t('nav.resources')}>
     <div className="resources-heading">
       <div>
-        <h2>{simulating ? 'Simulated resources' : `Resources in ${city}`}</h2>
-        <p className="muted">Shelters and supplies, labeled by who confirmed them. Confirm with the source before you travel.</p>
+        <h2>{simulating ? t('resources.simTitle') : t('resources.title', { city })}</h2>
+        <p className="muted">{t('resources.subtitle')}</p>
       </div>
       {live && (session
-        ? <button type="button" className="new-post-button" onClick={() => setAdding(!adding)}><Plus size={16} aria-hidden="true" />Add a resource</button>
-        : <button type="button" className="new-post-button" onClick={onSignIn}><Plus size={16} aria-hidden="true" />Sign in to add a resource</button>)}
+        ? <button type="button" className="new-post-button" onClick={() => setAdding(!adding)}><Plus size={16} aria-hidden="true" />{t('resources.add')}</button>
+        : <button type="button" className="new-post-button" onClick={onSignIn}><Plus size={16} aria-hidden="true" />{t('resources.signInToAdd')}</button>)}
     </div>
 
-    {simulating && <p className="notice" role="status">Simulation running: these resources are sample data and open and close with the scenario. Adding and reporting are turned off.</p>}
-    {!configured && !simulating && <p className="notice" role="status">Sample resources. Connect Supabase to load live data.</p>}
+    {simulating && <p className="notice" role="status">{t('resources.simNotice')}</p>}
+    {!configured && !simulating && <p className="notice" role="status">{t('resources.sampleNotice')}</p>}
     {adding && live && session && <AddResource city={city} existing={all} onDone={() => setAdding(false)} />}
 
-    <label className="resource-filter">Show
+    <label className="resource-filter">{t('resources.show')}
       <select value={filter} onChange={e => setFilter(e.target.value as ResourceFilter)}>
-        <option value="all">All resources</option>
-        <optgroup label="Type">{categories.map(c => <option key={c} value={c}>{categoryLabels[c]}</option>)}</optgroup>
-        <optgroup label="Status">{statuses.map(s => <option key={s} value={s}>{statusLabels[s]}</option>)}</optgroup>
+        <option value="all">{t('resources.all')}</option>
+        <optgroup label={t('resources.groupType')}>{categories.map(c => <option key={c} value={c}>{t(`category.${c}`)}</option>)}</optgroup>
+        <optgroup label={t('resources.groupStatus')}>{statuses.map(s => <option key={s} value={s}>{t(`status.${s}`)}</option>)}</optgroup>
       </select>
     </label>
 
-    {loading && <p role="status">Loading resources…</p>}
-    {live && query.isError && <div role="alert" className="panel"><h3>Couldn’t load resources</h3><p className="error">{message(query.error)}</p><button type="button" onClick={() => void query.refetch()}>Try again</button></div>}
+    {loading && <p role="status">{t('resources.loading')}</p>}
+    {live && query.isError && <div role="alert" className="panel"><h3>{t('resources.loadFailed')}</h3><p className="error">{message(query.error, t)}</p><button type="button" onClick={() => void query.refetch()}>{t('resources.tryAgain')}</button></div>}
     {items.length > 0
       ? <div className="resource-grid">{items.map(resource => <ResourceCard key={resource.id} resource={resource} now={now} canReport={canReport} onSignIn={onSignIn} />)}</div>
       : !loading && !(live && query.isError) && <div className="panel">
-        <h3>{all.length === 0 ? `No resources listed for ${city} yet` : 'No resources match this filter'}</h3>
-        <p>{all.length === 0 ? simulating ? 'Resources open as the simulation runs. Step forward to see them.' : 'This does not mean help is unavailable. Check official sources and call 911 in an emergency.' : 'Try another filter.'}</p>
+        <h3>{all.length === 0 ? t('resources.emptyTitle', { city }) : t('resources.emptyFilter')}</h3>
+        <p>{all.length === 0 ? simulating ? t('resources.emptySim') : t('resources.emptyHelp') : t('resources.tryFilter')}</p>
       </div>}
 
-    {live && query.isSuccess && <p className="muted">Last checked {timeAgo(new Date(query.dataUpdatedAt).toISOString(), now)} · Updates every 30 seconds.</p>}
-    <p className="muted">Community resources are unverified unless marked verified or official. Follow instructions from local officials. In an emergency, call 911.</p>
+    {live && query.isSuccess && <p className="muted">{t('resources.lastChecked', { time: timeAgo(new Date(query.dataUpdatedAt).toISOString(), now, lang === 'en' ? undefined : htmlLang[lang]) })}</p>}
+    <p className="muted">{t('resources.safetyNote')}</p>
   </section>
 }
