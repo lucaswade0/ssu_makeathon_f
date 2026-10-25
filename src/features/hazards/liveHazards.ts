@@ -42,6 +42,22 @@ function findCity(city: string) {
   return Object.entries(cityCenters).find(([name]) => name.toLowerCase() === wanted)?.[1]
 }
 
+const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+
+/** The other covered cities, nearest first, with the straight-line distance and direction from the given city's center. */
+export function nearbyCities(city: string) {
+  const from = findCity(city)
+  if (!from) return []
+  return Object.entries(cityCenters)
+    .filter(([, center]) => center !== from)
+    .map(([name, to]) => {
+      const east = (to.lng - from.lng) * Math.cos(((to.lat + from.lat) / 2) * Math.PI / 180)
+      const degrees = (Math.atan2(east, to.lat - from.lat) * 180 / Math.PI + 360) % 360
+      return { name, km: Math.round(distanceKm(to.lat, to.lng, from)), direction: COMPASS[Math.round(degrees / 45) % 8]! }
+    })
+    .sort((a, b) => a.km - b.km)
+}
+
 export function hasLiveCoverage(city: string) {
   return findCity(city) !== undefined
 }

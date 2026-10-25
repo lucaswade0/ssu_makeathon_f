@@ -13,11 +13,12 @@ import { cityCenter, hasLiveCoverage, topWeatherAlert, useEarthquakes, useFireIn
 import { MapPage } from './features/map/MapPage'
 import { NewsPage } from './features/news/NewsPage'
 import { ResourcesPage } from './features/resources/ResourcesPage'
+import { SamPage } from './features/sam/SamPage'
 import { useI18n } from './features/i18n/context'
 import { dateLocale } from './features/i18n/languages'
 import { TranslatableText } from './features/i18n/TranslatableText'
 import { useSimulation } from './features/simulation/context'
-import { AppShell, ComingSoon, type Page } from './layout/AppShell'
+import { AppShell, type Page } from './layout/AppShell'
 import './App.css'
 
 function ErrorMessage({ error }: { error: unknown }) {
@@ -354,7 +355,7 @@ function App() {
     {page === 'map' && <MapPage city={city} />}
     {page === 'news' && <NewsPage city={city} />}
     {page === 'resources' && <ResourcesPage city={city} onSignIn={openSignIn} />}
-    {page === 'sam' && <ComingSoon title={t('nav.sam')} text={t('sam.soon')} />}
+    {page === 'sam' && <SamPage city={city} />}
     {page === 'signin' && <SignInPage onBack={() => setPage('feed')} />}
   </AppShell>
 }
