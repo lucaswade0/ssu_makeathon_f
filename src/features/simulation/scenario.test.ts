@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { categories, isStale, statuses } from '../resources/schemas'
 import { baseTime, simulationState, steps } from './scenario'
 
 const now = Date.parse('2026-10-24T18:00:00Z')
@@ -116,5 +117,19 @@ describe('wildfire simulation scenario', () => {
     expect(severity(at('order'))).toBe('critical')
     expect(severity(at('downgrade'))).toBe('warning')
     expect(severity(last)).toBe('info')
+  })
+
+  it('shows every resource category and every trust level at its peak, so each filter has something to show', () => {
+    const peak = simulationState(at('downgrade'), base).resources
+    expect(new Set(peak.map(r => r.category))).toEqual(new Set(categories))
+    expect(new Set(peak.map(r => r.status))).toEqual(new Set(statuses))
+  })
+
+  it('shows one stale community listing once the warning is out, and only that one', () => {
+    const stale = (index: number) => simulationState(index, base).resources.filter(r => isStale(r, now)).map(r => r.id)
+    expect(stale(at('smoke'))).toEqual([])
+    expect(stale(at('warning'))).toEqual(['resource-water-2'])
+    expect(stale(at('downgrade'))).toEqual(['resource-water-2'])
+    expect(simulationState(at('warning'), base).resources.find(r => r.id === 'resource-water-2')?.status).toBe('community_submitted')
   })
 })

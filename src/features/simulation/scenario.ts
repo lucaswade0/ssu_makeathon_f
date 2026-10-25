@@ -84,6 +84,7 @@ export const steps: SimStep[] = [
     effects: {
       incident: { acres: 60, containment: 0 },
       addZones: ['SRO-E012'],
+      openResources: ['resource-water-2'],
       alert: { severity: 'warning', title: 'Evacuation warning: Zone SRO-E012', instructions: 'Be ready to leave on short notice. Gather medications, documents, and pets. Follow orders from local officials.', source_name: county },
       news: [{ hazard: 'fire', source: 'Sample data (CAL FIRE)', title: 'Fire grows near Fountaingrove', summary: '60 acres · 0% contained · Fountaingrove Pkwy near Round Barn Blvd', expires: null, url: 'https://inciweb.wildfire.gov/' }],
       posts: [{ name: 'Dev T.', type: 'update', body: 'Packed the car just in case. Neighbors on my street are doing the same.' }],
@@ -167,6 +168,8 @@ export function baseTime(now: number) {
   return now - steps[steps.length - 1]!.at * 60_000
 }
 
+const STALE_RESOURCE = 'resource-water-2'
+
 const zoneById = new Map(sampleZones.features.map(f => [f.properties.zone_id, f]))
 
 /** Everything the app should show at step `index` (inclusive). Pure: the same inputs give the same state. */
@@ -202,7 +205,9 @@ export function simulationState(index: number, base: number): SimState {
     for (const id of e.closeShelters ?? []) shelters.delete(id)
     for (const id of e.openResources ?? []) {
       const resource = sampleExtras.find(r => r.id === id)
-      if (resource) extras.set(id, { ...resource, created_at: time, updated_at: time, last_confirmed_at: time })
+      // A listing nobody has re-confirmed keeps its old age, so the stale label shows during the demo.
+      const confirmed = id === STALE_RESOURCE ? iso(base, step.at - 9 * 24 * 60) : time
+      if (resource) extras.set(id, { ...resource, created_at: confirmed, updated_at: confirmed, last_confirmed_at: confirmed })
     }
     for (const id of e.closeResources ?? []) extras.delete(id)
     e.news?.forEach((item, n) => news.push({ ...item, id: `sim-news-${step.id}-${n}`, time, sample: true }))
